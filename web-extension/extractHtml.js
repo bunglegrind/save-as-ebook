@@ -18,7 +18,7 @@ var allowedTags = [
     'math', 'maction', 'menclose', 'merror', 'mfenced', 'mfrac', 'mglyph', 'mi', 'mlabeledtr', 'mmultiscripts', 'mn', 'mo', 'mover', 'mpadded', 'mphantom', 'mroot',
     'mrow', 'ms', 'mspace', 'msqrt', 'mstyle', 'msub', 'msup', 'msubsup', 'mtable', 'mtd', 'mtext', 'mtr', 'munder', 'munderover', 'msgroup', 'mlongdiv', 'mscarries',
     'mscarry', 'mstack', 'semantics'
-    // TODO ? 
+    // TODO ?
     // ,'form', 'button'
 
     // TODO svg support ?
@@ -37,13 +37,33 @@ var tmpIdsToNewCssSTRING = {};
 // src: https://idpf.github.io/a11y-guidelines/content/style/reference.html
 var supportedCss = [
     'background-color',
-    'border',
-    'color', 
-    'font',
+    'border-top-width',
+    'border-top-style',
+    'border-top-color',
+    'border-bottom-width',
+    'border-bottom-style',
+    'border-bottom-color',
+    'border-right-width',
+    'border-right-style',
+    'border-right-color',
+    'border-left-width',
+    'border-left-style',
+    'border-left-color',
+    'border-collapse',
+    'color',
+    'font-style',
+    'font-variant',
+    'font-weight',
+    'font-size',
+    'font-family',
     'line-height',
     'list-style',
-    'padding',
-    'text-align', 
+    'padding-top',
+    'padding-bottom',
+    'padding-right',
+    'padding-left',
+    'text-align',
+    'display'
 ];
 //////
 
@@ -73,7 +93,7 @@ function getImageSrc(srcTxt) {
             filename: newImgFileName, // TODO name
             data: getBase64ImgData(srcTxt)
         });
-    } else {        
+    } else {
         allImages.push({
             originalUrl: getImgDownloadUrl(srcTxt),
             filename: newImgFileName,  // TODO name
@@ -125,7 +145,7 @@ function extractIFrames() {
         if (!iFrame.contentDocument || !iFrame.contentDocument.body) {
             continue
         }
-        let bodyContent = iFrame.contentDocument.body.innerHTML        
+        let bodyContent = iFrame.contentDocument.body.innerHTML
         let bbox = iFrame.getBoundingClientRect()
         let newDiv = document.createElement('div')
         newDiv.style.width = bbox.width
@@ -381,7 +401,7 @@ function extractCss(includeStyle, appliedStyles) {
 
 function deferredAddZip(url, filename) {
     let deferred = $.Deferred();
-    JSZipUtils.getBinaryContent(url, function(err, data) {        
+    JSZipUtils.getBinaryContent(url, function(err, data) {
         if (err) {
             // deferred.reject(err); TODO
             console.log('Error:', err);
@@ -408,13 +428,13 @@ function deferredAddZip(url, filename) {
                 }
                 tmpGlobalContent = tmpGlobalContent.replace(oldFilename, filename)
             }
-                        
+
             extractedImages.push({
                 filename: filename,
                 // TODO - must be JSON serializable
                 data: base64ArrayBuffer(data)
             });
-            
+
             deferred.resolve();
         }
     });
