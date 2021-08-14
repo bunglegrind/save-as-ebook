@@ -1,0 +1,26 @@
+{
+  "name": "save-as-ebook",
+  "version": "1.0.0",
+  "description": "Save a web page/selection as an eBook (.epub format) - a Chrome/Firefox/Opera Web Extension",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bunglegrind/save-as-ebook.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bunglegrind/save-as-ebook/issues"
+  },
+  "homepage": "https://github.com/bunglegrind/save-as-ebook#readme",
+  "dependencies": {
+    "@jkuebart/parseq": "^20201109.0.0",
+    "ramda": "^0.27.1"
+  }
+}
