@@ -1,170 +1,36 @@
+import core from "./core.js";
 
-///////////////////
-///////////////////
-///////////////////
-///////////////////
-/// Only for testing
+//Listener for keyboard shortcuts
+chrome.commands.onCommand.addListener(
+    (command) => executeCommand({type: command})
+);
 
-chrome.runtime.onInstalled.addListener(details => {
-  if (navigator.userAgent === 'PuppeteerTestingAgent') {
-      let TEST_TIMER = null
-      chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-          if (TEST_TIMER) {
-              clearTimeout(TEST_TIMER)
-          }
-
-          TEST_TIMER = setTimeout(()=> {
-                executeCommand({type: 'save-page'})
-          }, 2000)
-      });
-  }
-});
+//Listener for incoming messages
+chrome.runtime.onMessage.addListener(_execRequest);
 
 
-
-///////////////////
-///////////////////
-///////////////////
-///////////////////
-
-var isBusy = false;
-var busyResetTimer = null
-
-var defaultStyles = [
-    {
-        title: 'Reddit Comments',
-        url: 'reddit\\.com\\/r\\/[^\\/]+\\/comments',
-        style: `.side {
-display: none;
-}
-#header {
-display: none;
-}
-.arrow, .expand, .score, .live-timestamp, .flat-list, .buttons, .morecomments, .footer-parent, .icon {
-display: none !important;
-}
-`
-    },{
-        title: 'Wikipedia Article',
-        url: 'wikipedia\\.org\\/wiki\\/',
-        style: `#mw-navigation {
-display: none;
-}
-#footer {
-display: none;
-}
-#mw-panel {
-display: none;
-}
-#mw-head {
-display: none;
-}
-`
-    },{
-        title: 'YCombinator News Comments',
-        url: 'news\\.ycombinator\\.com\\/item\\?id=[0-9]+',
-        style: `#hnmain > tbody > tr:nth-child(1) > td > table {
-display: none;
-}
-* {
-background-color: white;
-}
-.title, .storylink {
-text-align: left;
-font-weight: bold;
-font-size: 20px;
-}
-.score {
-display: none;
-}
-.age {
-display: none;
-}
-.hnpast {
-display: none;
-}
-.togg {
-display: none;
-}
-.votelinks, .rank {
-display: none;
-}
-.votearrow {
-display: none;
-}
-.yclinks {
-display: none;
-}
-form {
-display: none;
-}
-a.hnuser {
-font-weight: bold;
-color: black !important;
-padding: 3px;
-}
-.subtext > span, .subtext > a:not(:nth-child(2)) {
-display: none;
-}
-`
-    },{
-        title: 'Medium Article',
-        url: 'medium\\.com',
-        style: `.metabar {
-display: none !important;
-}
-header.container {
-display: none;
-}
-.js-postShareWidget {
-display: none;
-}
-footer, canvas {
-display: none !important;
-}
-.u-fixed, .u-bottom0 {
-display: none;
-}
-`
-    },{
-        title: 'Twitter',
-        url: 'twitter\\.com\\/.+',
-        style: `.topbar {
-display: none !important;
-}
-.ProfileCanopy, .ProfileCanopy-inner {
-display: none;
-}
-.ProfileSidebar {
-display: none;
-}
-.ProfileHeading {
-display: none !important;
-}
-.ProfileTweet-actionList {
-display: none;
-}
-`
-    }
-
-];
-
-chrome.commands.onCommand.addListener((command) => {
-    executeCommand({type: command})
-});
-
+//convert shortcuts to messages
 function executeCommand(command) {
-    if (isBusy) {
+    if (core.isBusy()) {
         chrome.tabs.query({
-            currentWindow: true,
-            active: true
-        }, (tab) => {
-            chrome.tabs.sendMessage(tab[0].id, {'alert': 'Work in progress! Please wait until the current eBook is generated!'}, (r) => {
-              console.log(r);
-            });
-        })
-        return;
+                currentWindow: true,
+                active: true
+            },
+            (tab) => chrome.tabs.sendMessage(
+                tab[0].id,
+                {
+                    'alert': (
+                        'Work in progress! Please wait until the current ' +
+                        'eBook is generated!'
+                    )
+                },
+                (r) => console.log(r)
+            )
+        )
     }
+
+    core.setWarn();
+
     if (command.type === 'save-page') {
         dispatch('extract-page', false, []);
     } else if (command.type === 'save-selection') {
@@ -175,33 +41,35 @@ function executeCommand(command) {
         dispatch('extract-selection', true, []);
     }
 
-    isBusy = true
-
-    // 
-    busyResetTimer = setTimeout(() => {
-        resetBusy()
-    }, 20000)
 }
 
 function dispatch(action, justAddToBuffer, appliedStyles) {
+    //WARNING: when saving page, the book buffer is reset
     if (!justAddToBuffer) {
-        _execRequest({type: 'remove'});
+        _execRequest({type: 'clear book'});
     }
-    chrome.browserAction.setBadgeBackgroundColor({color:"red"});
-    chrome.browserAction.setBadgeText({text: "Busy"});
 
     chrome.tabs.query({
         currentWindow: true,
         active: true
     }, (tab) => {
 
-        isIncludeStyles((result) =>{
-            let isIncludeStyle = result.includeStyle
-            prepareStyles(tab, isIncludeStyle, appliedStyles, (tmpAppliedStyles) => {
-                applyAction(tab, action, justAddToBuffer, isIncludeStyle, tmpAppliedStyles, () => {
-                    alert('done')
+        isIncludeStyles((result) => {
+            let isIncludeStyle = result.includeStyle;
+            prepareStyles(
+                tab,
+                isIncludeStyle,
+                appliedStyles,
+                function (tmpAppliedStyles) {
+                    applyAction(
+                        tab,
+                        action,
+                        justAddToBuffer,
+                        isIncludeStyle,
+                        tmpAppliedStyles,
+                        () => alert('done')
+                    )
                 })
-            })
         })
     });
 }
@@ -218,8 +86,7 @@ function isIncludeStyles(callback) {
 
 function prepareStyles(tab, includeStyle, appliedStyles, callback) {
     if (!includeStyle) {
-        callback(appliedStyles)
-        return
+        return callback(appliedStyles);
     }
 
     chrome.storage.local.get('styles', (data) => {
@@ -227,24 +94,17 @@ function prepareStyles(tab, includeStyle, appliedStyles, callback) {
         if (data && data.styles) {
             styles = data.styles;
         }
+        if (!styles || styles.length === 0) {
+            return callback(appliedStyles);
+        }
+
         let currentUrl = tab[0].url;
         let currentStyle = null;
-
-        if (!styles) {
-            callback(appliedStyles)
-            return
-        }
-
-        if (styles.length === 0) {
-            callback(appliedStyles)
-            return
-        }
-
         let allMatchingStyles = [];
 
-        for (let i = 0; i < styles.length; i++) {
+        styles.forEach(function (style, i) {
             currentUrl = currentUrl.replace(/(http[s]?:\/\/|www\.)/i, '').toLowerCase();
-            let styleUrl = styles[i].url;
+            let styleUrl = style.url;
             let styleUrlRegex = null;
 
             try {
@@ -258,41 +118,34 @@ function prepareStyles(tab, includeStyle, appliedStyles, callback) {
                     length: styleUrl.length
                 });
             }
-        }
+        });
 
         if (allMatchingStyles.length === 0) {
-            callback(appliedStyles)
-            return
+            return callback(appliedStyles);
         }
-    
+
         allMatchingStyles.sort((a, b) => b.length - a.length);
         let selStyle = allMatchingStyles[0];
 
         if (!selStyle) {
-            callback(appliedStyles)
-            return
+            return callback(appliedStyles);
         }
 
         currentStyle = styles[selStyle.index];
 
-        if (!currentStyle) {
-            callback(appliedStyles)
-            return
+        if (!currentStyle || !currentStyle.style) {
+            return callback(appliedStyles);
         }
 
-        if (!currentStyle.style) {
-            callback(appliedStyles)
-            return
-        }
 
-        chrome.tabs.insertCSS(tab[0].id, { code: currentStyle.style }, () => {
+        chrome.tabs.insertCSS(tab[0].id, {code: currentStyle.style}, () => {
             appliedStyles.push(currentStyle);
-            callback(appliedStyles)
+            return callback(appliedStyles)
         });
     });
 }
 
-function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles, callback) {
+function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles) {
     chrome.tabs.sendMessage(tab[0].id, {
         type: action,
         includeStyle: includeStyle,
@@ -300,22 +153,25 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles, 
     }, (response) => {
 
         if (!response) {
-            resetBusy()
-            chrome.tabs.sendMessage(tab[0].id, {'alert': 'Save as eBook does not work on this web site!'}, (r) => {});
-            return;
+            core.removeWarn();
+            return chrome.tabs.sendMessage(tab[0].id, {'alert': 'Save as eBook does not work on this web site!'}, () => {
+            });
         }
 
         if (response.content.trim() === '') {
-            resetBusy()
+            core.removeWarn();
             if (justAddToBuffer) {
-                chrome.tabs.sendMessage(tab[0].id, {'alert': 'Cannot add an empty selection as chapter!'}, (r) => {});
+                chrome.tabs.sendMessage(tab[0].id, {'alert': 'Cannot add an empty selection as chapter!'}, () => {
+                });
             } else {
-                chrome.tabs.sendMessage(tab[0].id, {'alert': 'Cannot generate the eBook from an empty selection!'}, (r) => {});
+                chrome.tabs.sendMessage(tab[0].id, {'alert': 'Cannot generate the eBook from an empty selection!'}, () => {
+                });
             }
             return;
         }
         if (!justAddToBuffer) {
-            chrome.tabs.sendMessage(tab[0].id, {'shortcut': 'build-ebook', response: [response]}, (r) => {});
+            chrome.tabs.sendMessage(tab[0].id, {'shortcut': 'build-ebook', response: [response]}, () => {
+            });
         } else {
             chrome.storage.local.get('allPages', (data) => {
                 if (!data || !data.allPages) {
@@ -323,36 +179,21 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles, 
                 }
                 data.allPages.push(response);
                 chrome.storage.local.set({'allPages': data.allPages});
-                resetBusy()
-                chrome.tabs.sendMessage(tab[0].id, {'alert': 'Page or selection added as chapter!'}, (r) => {});
+                core.removeWarn();
+                chrome.tabs.sendMessage(tab[0].id, {'alert': 'Page or selection added as chapter!'}, () => {
+                });
             })
         }
     });
 }
 
-function resetBusy() {
-    isBusy = false
-
-    if (busyResetTimer) {
-        clearTimeout(busyResetTimer)
-        busyResetTimer = null
-    }
-    
-    chrome.browserAction.setBadgeText({text: ""})
-
-    let popups = chrome.extension.getViews({type: "popup"});
-    if (popups && popups.length > 0) {
-        popups[0].close()
-    }
-}
-
-chrome.runtime.onMessage.addListener(_execRequest);
-
+//MUST return true
+//https://developer.chrome.com/docs/extensions/reference/runtime/#event-onMessage
 function _execRequest(request, sender, sendResponse) {
     if (request.type === 'get') {
         chrome.storage.local.get('allPages', function (data) {
             if (!data || !data.allPages) {
-                sendResponse({allPages: []});
+                return sendResponse({allPages: []});
             }
             sendResponse({allPages: data.allPages});
         })
@@ -360,9 +201,8 @@ function _execRequest(request, sender, sendResponse) {
     if (request.type === 'set') {
         chrome.storage.local.set({'allPages': request.pages});
     }
-    if (request.type === 'remove') {
-        chrome.storage.local.remove('allPages');
-        chrome.storage.local.remove('title');
+    if (request.type === 'clear book') {
+        core.clearBook();
     }
     if (request.type === 'get title') {
         chrome.storage.local.get('title', function (data) {
@@ -377,13 +217,7 @@ function _execRequest(request, sender, sendResponse) {
         chrome.storage.local.set({'title': request.title});
     }
     if (request.type === 'get styles') {
-        chrome.storage.local.get('styles', function (data) {
-            if (!data || !data.styles) {
-                sendResponse({styles: defaultStyles});
-            } else {
-                sendResponse({styles: data.styles});
-            }
-        });
+        core.getStyles(sendResponse);
     }
     if (request.type === 'set styles') {
         chrome.storage.local.set({'styles': request.styles});
@@ -398,32 +232,23 @@ function _execRequest(request, sender, sendResponse) {
         });
     }
     if (request.type === 'set current style') {
-        chrome.storage.local.set({'currentStyle': request.currentStyle});
+        core.setCurrentStyle(request);
     }
     if (request.type === 'get include style') {
-        chrome.storage.local.get('includeStyle', function (data) {
-            if (!data) {
-                sendResponse({includeStyle: false});
-            } else {
-                sendResponse({includeStyle: data.includeStyle});
-            }
-        });
+        core.getIncludeStyle(sendResponse);
     }
     if (request.type === 'set include style') {
-        chrome.storage.local.set({'includeStyle': request.includeStyle});
+        core.setIncludeStyle(request);
     }
     if (request.type === 'is busy?') {
-        sendResponse({isBusy: isBusy})
-    }
-    if (request.type === 'set is busy') {
-        isBusy = request.isBusy
+        sendResponse({isBusy: core.isBusy()});
     }
     if (request.type === 'save-page' || request.type === 'save-selection' ||
         request.type === 'add-page' || request.type === 'add-selection') {
-        executeCommand({type: request.type})
+        executeCommand({type: request.type});
     }
     if (request.type === 'done') {
-        resetBusy()
+        core.removeWarn();
     }
     return true;
 }

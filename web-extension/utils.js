@@ -79,7 +79,7 @@ function saveEbookPages(pages) {
 
 function removeEbook() {
     chrome.runtime.sendMessage({
-        type: "remove"
+        type: "clear book"
     }, function(response) {});
 }
 
@@ -118,7 +118,7 @@ function getOriginUrl() {
 
 function getFileExtension(fileName) {
     try {
-        let tmpFileName = '';
+        let tmpFileName;
 
         if (isBase64Img(fileName)) {
             tmpFileName = getBase64ImgType(fileName);

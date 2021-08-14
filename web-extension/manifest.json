@@ -16,7 +16,7 @@
             "saveEbook.js", "extractHtml.js", "utils.js"]
     }],
     "background": {
-        "scripts": ["background.js"]
+        "page": "background.html"
     },
     "browser_action": {
         "default_icon": "icons/book32.png",

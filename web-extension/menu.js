@@ -15,7 +15,7 @@ document.getElementById('waitMessage').innerHTML = chrome.i18n.getMessage('waitM
 
 function removeEbook() {
     chrome.runtime.sendMessage({
-        type: "remove"
+        type: "clear book"
     }, function(response) {});
 }
 
@@ -43,8 +43,6 @@ function createStyleList(styles) {
         if (!styles || styles.length === 0) {
             return;
         }
-
-        let foundMatchingUrl = false;
 
         // if multiple URL regexes match, select the longest one
         let allMatchingStyles = [];
@@ -154,13 +152,14 @@ document.getElementById("editChapters").onclick = function() {
 };
 
 function dispatch(commandType, justAddToBuffer) {
+    console.debug("dispatch: " + commandType);
     document.getElementById('busy').style.display = 'block';
     if (!justAddToBuffer) {
         removeEbook();
     }
     chrome.runtime.sendMessage({
         type: commandType
-    }, function(response) {
+    }, function() {
         //FIXME - hidden before done
         document.getElementById('busy').style.display = 'none';
     });
