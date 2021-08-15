@@ -11,6 +11,7 @@ chrome.runtime.onMessage.addListener(_execRequest);
 
 //convert shortcuts to messages
 function executeCommand(command) {
+
     if (core.isBusy()) {
         chrome.tabs.query({
                 currentWindow: true,
@@ -32,20 +33,21 @@ function executeCommand(command) {
     core.setWarn();
 
     if (command.type === 'save-page') {
-        dispatch('extract-page', false, []);
+        core.savePage();
+        // dispatch('extract-page', false);
     } else if (command.type === 'save-selection') {
-        dispatch('extract-selection', false, []);
+        dispatch('extract-selection', false);
     } else if (command.type === 'add-page') {
-        dispatch('extract-page', true, []);
+        dispatch('extract-page', true);
     } else if (command.type === 'add-selection') {
-        dispatch('extract-selection', true, []);
+        dispatch('extract-selection', true);
     }
 
 }
 
-function dispatch(action, justAddToBuffer, appliedStyles) {
+function dispatch(action, insertInBook) {
     //WARNING: when saving page, the book buffer is reset
-    if (!justAddToBuffer) {
+    if (!insertInBook) {
         _execRequest({type: 'clear book'});
     }
 
@@ -54,95 +56,72 @@ function dispatch(action, justAddToBuffer, appliedStyles) {
         active: true
     }, (tab) => {
 
-        isIncludeStyles((result) => {
-            let isIncludeStyle = result.includeStyle;
-            prepareStyles(
-                tab,
-                isIncludeStyle,
-                appliedStyles,
-                function (tmpAppliedStyles) {
-                    applyAction(
-                        tab,
-                        action,
-                        justAddToBuffer,
-                        isIncludeStyle,
-                        tmpAppliedStyles,
-                        () => alert('done')
-                    )
-                })
-        })
+        core.getIncludeStyle(
+            function (result) {
+                prepareStyles(
+                    tab,
+                    result.includeStyle,
+                    function (tmpAppliedStyles) {
+                        applyAction(
+                            tab,
+                            action,
+                            insertInBook,
+                            isIncludeStyle,
+                            tmpAppliedStyles,
+                            () => alert('done')
+                        )
+                    }
+                )
+            }
+        )
     });
 }
 
-function isIncludeStyles(callback) {
-    chrome.storage.local.get('includeStyle', (data) => {
-        if (!data) {
-            callback({includeStyle: false});
-        } else {
-            callback({includeStyle: data.includeStyle});
-        }
-    });
-}
+function prepareStyles(tab, includeStyle, callback) {
+    const appliedStyles = [];
 
-function prepareStyles(tab, includeStyle, appliedStyles, callback) {
     if (!includeStyle) {
         return callback(appliedStyles);
     }
+    core.getStyles(
+        function (data) {
+            const styles = data.styles;
+            const currentUrl = tab[0].url.replace(
+                /(http[s]?:\/\/|www\.)/i,
+                ''
+            ).toLowerCase();
 
-    chrome.storage.local.get('styles', (data) => {
-        let styles = defaultStyles;
-        if (data && data.styles) {
-            styles = data.styles;
-        }
-        if (!styles || styles.length === 0) {
-            return callback(appliedStyles);
-        }
+            //We can write also as filter + map
+            const allMatchingStyles = styles.reduce(function (acc, style, i) {
+                const styleUrlRegex = new RegExp(style.url, 'i');
 
-        let currentUrl = tab[0].url;
-        let currentStyle = null;
-        let allMatchingStyles = [];
+                if (styleUrlRegex && styleUrlRegex.test(currentUrl)) {
+                    return acc.concat({
+                        index: i,
+                        length: style.url.length
+                    });
+                }
+                return acc;
+            }, []);
 
-        styles.forEach(function (style, i) {
-            currentUrl = currentUrl.replace(/(http[s]?:\/\/|www\.)/i, '').toLowerCase();
-            let styleUrl = style.url;
-            let styleUrlRegex = null;
+            allMatchingStyles.sort((a, b) => b.length - a.length);
+            const selStyle = allMatchingStyles.length > 0 ? allMatchingStyles[0] : false;
 
-            try {
-                styleUrlRegex = new RegExp(styleUrl, 'i');
-            } catch (e) {
+            if (!selStyle) {
+                return callback(appliedStyles);
             }
 
-            if (styleUrlRegex && styleUrlRegex.test(currentUrl)) {
-                allMatchingStyles.push({
-                    index: i,
-                    length: styleUrl.length
-                });
+            const currentStyle = styles[selStyle.index];
+
+            if (!currentStyle || !currentStyle.style) {
+                return callback(appliedStyles);
             }
+
+            chrome.tabs.insertCSS(tab[0].id, {code: currentStyle.style}, () => {
+                appliedStyles.push(currentStyle);
+                return callback(appliedStyles)
+            });
         });
-
-        if (allMatchingStyles.length === 0) {
-            return callback(appliedStyles);
-        }
-
-        allMatchingStyles.sort((a, b) => b.length - a.length);
-        let selStyle = allMatchingStyles[0];
-
-        if (!selStyle) {
-            return callback(appliedStyles);
-        }
-
-        currentStyle = styles[selStyle.index];
-
-        if (!currentStyle || !currentStyle.style) {
-            return callback(appliedStyles);
-        }
-
-
-        chrome.tabs.insertCSS(tab[0].id, {code: currentStyle.style}, () => {
-            appliedStyles.push(currentStyle);
-            return callback(appliedStyles)
-        });
-    });
 }
 
 function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles) {
@@ -151,7 +130,6 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles) 
         includeStyle: includeStyle,
         appliedStyles: appliedStyles
     }, (response) => {
-
         if (!response) {
             core.removeWarn();
             return chrome.tabs.sendMessage(tab[0].id, {'alert': 'Save as eBook does not work on this web site!'}, () => {
@@ -170,17 +148,16 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles) 
             return;
         }
         if (!justAddToBuffer) {
-            chrome.tabs.sendMessage(tab[0].id, {'shortcut': 'build-ebook', response: [response]}, () => {
-            });
+            chrome.tabs.sendMessage(tab[0].id, {'shortcut': 'build-ebook', response: [response]});
         } else {
-            chrome.storage.local.get('allPages', (data) => {
-                if (!data || !data.allPages) {
-                    data.allPages = [];
-                }
+            core.getBook(function (data) {
                 data.allPages.push(response);
-                chrome.storage.local.set({'allPages': data.allPages});
-                core.removeWarn();
-                chrome.tabs.sendMessage(tab[0].id, {'alert': 'Page or selection added as chapter!'}, () => {
+                core.setBook({'allPages': data.allPages}, function () {
+                    core.removeWarn();
+                    chrome.tabs.sendMessage(
+                        tab[0].id,
+                        {'alert': 'Page or selection added as chapter!'}
+                    );
                 });
             })
         }
@@ -191,45 +168,28 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles) 
 //https://developer.chrome.com/docs/extensions/reference/runtime/#event-onMessage
 function _execRequest(request, sender, sendResponse) {
     if (request.type === 'get') {
-        chrome.storage.local.get('allPages', function (data) {
-            if (!data || !data.allPages) {
-                return sendResponse({allPages: []});
-            }
-            sendResponse({allPages: data.allPages});
-        })
+        core.getBook(sendResponse);
     }
     if (request.type === 'set') {
-        chrome.storage.local.set({'allPages': request.pages});
+        core.setBook(request);
     }
     if (request.type === 'clear book') {
         core.clearBook();
     }
     if (request.type === 'get title') {
-        chrome.storage.local.get('title', function (data) {
-            if (!data || !data.title || data.title.trim().length === 0) {
-                sendResponse({title: 'eBook'});
-            } else {
-                sendResponse({title: data.title});
-            }
-        })
+        core.getTitle(sendResponse);
     }
     if (request.type === 'set title') {
-        chrome.storage.local.set({'title': request.title});
+        core.setTitle(request);
     }
     if (request.type === 'get styles') {
         core.getStyles(sendResponse);
     }
     if (request.type === 'set styles') {
-        chrome.storage.local.set({'styles': request.styles});
+        core.setStyles(request);
     }
     if (request.type === 'get current style') {
-        chrome.storage.local.get('currentStyle', function (data) {
-            if (!data || !data.currentStyle) {
-                sendResponse({currentStyle: 0});
-            } else {
-                sendResponse({currentStyle: data.currentStyle});
-            }
-        });
+        core.getCurrentStyle(sendResponse);
     }
     if (request.type === 'set current style') {
         core.setCurrentStyle(request);
