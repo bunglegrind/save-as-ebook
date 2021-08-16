@@ -11,8 +11,8 @@ function tabQuery(callback, props) {
 }
 
 function sendMessage(tabId) {
-    return function sendMessageRequestor(callback, props) {
-        return chrome.tabs.sendMessage(tabId, props, function (response) {
+    return function sendMessageRequestor(callback, message) {
+        return chrome.tabs.sendMessage(tabId, message, function (response) {
             if (response === undefined) {
                 return callback(undefined, chrome.runtime.lastError);
             }
@@ -22,10 +22,9 @@ function sendMessage(tabId) {
 }
 
 
-
 const getFromStorage = curry(
-    function getFromStorageUncarried(key, defaultValue, callback, ignore) {
-        return chrome.storage.local.get(
+    function getFromStorageUncarried(key, defaultValue, callback) {
+        chrome.storage.local.get(
             key,
             function (data) {
                 //Not clear in the docs...
@@ -42,7 +41,7 @@ const getFromStorage = curry(
 );
 
 //WARNING: the callback is missing from everywhere in the code!
-const setStorage = curry(function setFromStorageUncarried(key, req, callback, ignore) {
+const setStorage = curry(function setFromStorageUncarried(key, req, callback) {
     const obj = Object.create(null);
     obj[key] = req.key;
     if (typeof callback === "function") {
@@ -55,6 +54,8 @@ const warn = warning(20000);
 
 const getStyles = getFromStorage("styles", defaultStyles);
 const getIncludeStyle = getFromStorage("includeStyle", false);
+const getIncludeStyleRequestor = (callback, ignore) => getIncludeStyle(callback);
+const getStylesRequestor = (callback, ignore) => getStyles(callback);
 const getBook = getFromStorage("allPages", []);
 const getTitle = getFromStorage("title", "eBook");
 const getCurrentStyle = getFromStorage("currentStyle", 0);
@@ -71,17 +72,20 @@ function clearBook() {
     chrome.storage.local.remove('title');
 }
 
-function savePage() {//TODO: action may be a closure for the following requestors
-    core.clearBook();//WARNING Deletes the book
+function savePage() {//TODO: action and tabId may be a closure for the following requestors
+    clearBook();//WARNING Deletes the book
+
+    let tabId;
 
     parseq.sequence([
         parseq.parallel([
             tabQuery,
-            getIncludeStyle,
-            getStyles//We may optimize checking if custom styles are needed before asking all the styles
+            getIncludeStyleRequestor,
+            getStylesRequestor//We may optimize checking if custom styles are needed before asking all the styles
         ]),
         prepareStyles,
-        applyAction
+        startJob,
+        generateOutcome
     ])(function (value, reason) {
         if (value === undefined) {
             return console.log(reason);
@@ -91,99 +95,86 @@ function savePage() {//TODO: action may be a closure for the following requestor
         currentWindow: true,
         active: true
     });
-}
 
-function prepareStyles(callback, value) {
-    const [tab, includeStyle, {styles}] = value;
-    const appliedStyles = [];
 
-    value.appliedStyles = appliedStyles;
+    function prepareStyles(callback, value) {
+        const [tab, includeStyle, {styles}] = value;
+        tabId = tab[0].id;
+        const appliedStyles = [];
 
-    if (!includeStyle) {
-        return callback(value);
-    }
+        value.appliedStyles = appliedStyles;
+
+        if (!includeStyle) {
+            return callback(value);
+        }
 //Is the actual site included in the custom CSS? TODO: Extract the function
-    const currentUrl = tab[0].url.replace(
-        /(http[s]?:\/\/|www\.)/i,
-        ''
-    ).toLowerCase();
+        const currentUrl = tab[0].url.replace(
+            /(http[s]?:\/\/|www\.)/i,
+            ''
+        ).toLowerCase();
 
-    //We can write also as filter + map
-    const allMatchingStyles = styles.reduce(function (acc, style, i) {
-        const styleUrlRegex = new RegExp(style.url, 'i');
+        //We can write also as filter + map
+        const allMatchingStyles = styles.reduce(function (acc, style, i) {
+            const styleUrlRegex = new RegExp(style.url, 'i');
 
-        if (styleUrlRegex && styleUrlRegex.test(currentUrl)) {
-            return acc.concat({
-                index: i,
-                length: style.url.length
-            });
-        }
-        return acc;
-    }, []);
-
-    allMatchingStyles.sort((a, b) => b.length - a.length);
-    const selStyle = allMatchingStyles.length > 0 ? allMatchingStyles[0] : false;
-
-    if (!selStyle) {
-        return callback(value);
-    }
-
-    const currentStyle = styles[selStyle.index];
-
-    if (!currentStyle || !currentStyle.style) {
-        return callback(value);
-    }
-    appliedStyles.push(currentStyle);
-
-    chrome.tabs.insertCSS(
-        tab[0].id,
-        {code: currentStyle.style},
-        () => callback(value)
-    );
-
-}
-
-function applyAction(callback, {tab, appliedStyles, includeStyle}) {
-    const justAddToBuffer = false;
-    const action = "extract-page";
-
-    chrome.tabs.sendMessage(tab[0].id, {
-        type: action,
-        includeStyle: includeStyle,
-        appliedStyles: appliedStyles
-    }, (response) => {
-        if (!response) {
-            core.removeWarn();
-            return chrome.tabs.sendMessage(tab[0].id, {'alert': 'Save as eBook does not work on this web site!'}, () => {
-            });
-        }
-
-        if (response.content.trim() === '') {
-            core.removeWarn();
-            if (justAddToBuffer) {
-                chrome.tabs.sendMessage(tab[0].id, {'alert': 'Cannot add an empty selection as chapter!'}, () => {
-                });
-            } else {
-                chrome.tabs.sendMessage(tab[0].id, {'alert': 'Cannot generate the eBook from an empty selection!'}, () => {
+            if (styleUrlRegex && styleUrlRegex.test(currentUrl)) {
+                return acc.concat({
+                    index: i,
+                    length: style.url.length
                 });
             }
-            return;
+            return acc;
+        }, []);
+
+        allMatchingStyles.sort((a, b) => b.length - a.length);
+        const selStyle = allMatchingStyles.length > 0 ? allMatchingStyles[0] : false;
+
+        if (!selStyle) {
+            return callback(value);
         }
-        if (!justAddToBuffer) {
-            chrome.tabs.sendMessage(tab[0].id, {'shortcut': 'build-ebook', response: [response]});
+
+        const currentStyle = styles[selStyle.index];
+
+        if (!currentStyle || !currentStyle.style) {
+            return callback(value);
+        }
+        appliedStyles.push(currentStyle);
+
+        chrome.tabs.insertCSS(
+            tabId,
+            {code: currentStyle.style},
+            () => callback(value)
+        );
+
+    }
+
+    function startJob(callback, value) {
+        const includeStyle = value[1];
+        const appliedStyles = value.appliedStyles;
+        const justAddToBuffer = false;
+        const action = "extract-page";
+
+        return sendMessage(tabId)(
+            callback,
+            {
+                type: action,
+                includeStyle: includeStyle,
+                appliedStyles: appliedStyles,
+            });
+
+    }
+
+    function generateOutcome(callback, response) {
+        let mess;
+
+        if (response.content.trim() === "") {
+            warn.remove();
+            mess = {"alert": "Cannot generate the eBook from an empty selection!"};
         } else {
-            core.getBook(function (data) {
-                data.allPages.push(response);
-                core.setBook({'allPages': data.allPages}, function () {
-                    core.removeWarn();
-                    chrome.tabs.sendMessage(
-                        tab[0].id,
-                        {'alert': 'Page or selection added as chapter!'}
-                    );
-                });
-            })
+            mess = {"shortcut": "build-ebook", response: [response]};
         }
-    });
+        return sendMessage(tabId)(callback, mess);
+    }
 }
 
 export default Object.freeze({
@@ -201,8 +192,8 @@ export default Object.freeze({
     setTitle,
     setStyles,
     savePage,
-    addPage,
-    saveSelection,
-    addSelection,
+    // addPage,
+    // saveSelection,
+    // addSelection,
     removeWarn: warn.remove
 });

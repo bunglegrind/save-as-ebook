@@ -182,7 +182,7 @@ function _execRequest(request, sender, sendResponse) {
     if (request.type === 'set title') {
         core.setTitle(request);
     }
-    if (request.type === 'get styles') {
+    if (request.type === "get styles") {
         core.getStyles(sendResponse);
     }
     if (request.type === 'set styles') {
