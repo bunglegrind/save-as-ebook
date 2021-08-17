@@ -152,13 +152,13 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles) 
         } else {
             core.getBook(function (data) {
                 data.allPages.push(response);
-                core.setBook({'allPages': data.allPages}, function () {
+                core.setBook(function () {
                     core.removeWarn();
                     chrome.tabs.sendMessage(
                         tab[0].id,
                         {'alert': 'Page or selection added as chapter!'}
                     );
-                });
+                }, {'allPages': data.allPages});
             })
         }
     });
@@ -167,6 +167,14 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles) 
 //MUST return true
 //https://developer.chrome.com/docs/extensions/reference/runtime/#event-onMessage
 function _execRequest(request, sender, sendResponse) {
+    function callback(value, reason) {
+        if (value === undefined) {
+            return console.log("reason: " + request.type + " " + reason);
+        }
+        return console.log("value: " + request.type + " " + value);
+    }
+
+
     if (request.type === 'get') {
         core.getBook(sendResponse);
     }
@@ -174,31 +182,31 @@ function _execRequest(request, sender, sendResponse) {
         core.setBook(request);
     }
     if (request.type === 'clear book') {
-        core.clearBook();
+        core.clearBook(callback);
     }
     if (request.type === 'get title') {
         core.getTitle(sendResponse);
     }
     if (request.type === 'set title') {
-        core.setTitle(request);
+        core.setTitle(callback, request);
     }
     if (request.type === "get styles") {
         core.getStyles(sendResponse);
     }
     if (request.type === 'set styles') {
-        core.setStyles(request);
+        core.setStyles(callback, request);
     }
     if (request.type === 'get current style') {
         core.getCurrentStyle(sendResponse);
     }
     if (request.type === 'set current style') {
-        core.setCurrentStyle(request);
+        core.setCurrentStyle(callback, request);
     }
     if (request.type === 'get include style') {
         core.getIncludeStyle(sendResponse);
     }
     if (request.type === 'set include style') {
-        core.setIncludeStyle(request);
+        core.setIncludeStyle(sendResponse, request);
     }
     if (request.type === 'is busy?') {
         sendResponse({isBusy: core.isBusy()});

@@ -53,7 +53,11 @@ document.getElementById('includeStyleCheck').onclick = function () {
     chrome.runtime.sendMessage({
         type: "set include style",
         includeStyle: includeStyleCheck.checked
-    }, function (response) {
+    }, function callback(value, reason) {
+        if (value === undefined) {
+            return console.log("reason: menu-set include style " + reason);
+        }
+        return console.log("value: menu-set include style " + value);
     });
 }
 

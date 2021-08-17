@@ -1,6 +1,5 @@
 import defaultStyles from "./defaultStyles.js";
 import warning from "./warning.js";
-import {curry} from "./libs/ramda/index.js";
 import parseq from "./libs/parseq.js";
 
 function tabQuery(callback, props) {
@@ -13,8 +12,8 @@ function tabQuery(callback, props) {
 function sendMessage(tabId) {
     return function sendMessageRequestor(callback, message) {
         return chrome.tabs.sendMessage(tabId, message, function (response) {
-            if (response === undefined) {
-                return callback(undefined, chrome.runtime.lastError);
+            if (chrome.runtime.lastError) {
+                return callback(undefined, `sendMessage failed: tab - ${tabId} ${chrome.runtime.lastError}`);
             }
             return callback(response);
         });
@@ -22,40 +21,55 @@ function sendMessage(tabId) {
 }
 
 
-const getFromStorage = curry(
-    function getFromStorageUncarried(key, defaultValue, callback) {
-        chrome.storage.local.get(
+function getFromStorage(key, defaultValue) {
+    return function getFromStorageRequestor(callback) {
+        return chrome.storage.local.get(
             key,
             function (data) {
                 //Not clear in the docs...
                 //https://developer.chrome.com/docs/extensions/reference/storage/
-                if (data === undefined) {
-                    return callback(undefined, chrome.runtime.lastError);
+                if (chrome.runtime.lastError) {
+                    return callback(undefined, `getStorage failed: key - ${key} ${chrome.runtime.lastError}`);
                 }
                 const toR = Object.create(null);
-                toR[key] = data?.styles ?? defaultValue;
+                toR[key] = data[key] ?? defaultValue;
                 callback(toR);
             }
         );
     }
-);
+}
 
 //WARNING: the callback is missing from everywhere in the code!
-const setStorage = curry(function setFromStorageUncarried(key, req, callback) {
-    const obj = Object.create(null);
-    obj[key] = req.key;
-    if (typeof callback === "function") {
-        return chrome.storage.local.set(obj, callback);
+function setStorage(key) {
+    return function setStorageRequestor(callback, req) {
+        const obj = Object.create(null);
+        obj[key] = req[key];
+        return chrome.storage.local.set(obj, function () {
+            if (typeof callback === "function") {
+                if (chrome.runtime.lastError) {
+                    return callback(undefined, `setStorage failed: key - ${key} ${chrome.runtime.lastError}`);
+                }
+                return callback("success");
+            }
+        });
     }
-    return chrome.storage.local.set(obj);
-});
+}
+
+function removeFromStorage(key) {
+    return function removeFromStorageRequestor(callback) {
+        return chrome.storage.local.remove(key, function () {
+            if (chrome.runtime.lastError) {
+                return callback(undefined, `removeFromStorage failed: key - ${key} ${chrome.runtime.lastError}`);
+            }
+            return callback("success");
+        });
+    }
+}
 
 const warn = warning(20000);
 
 const getStyles = getFromStorage("styles", defaultStyles);
 const getIncludeStyle = getFromStorage("includeStyle", false);
-const getIncludeStyleRequestor = (callback, ignore) => getIncludeStyle(callback);
-const getStylesRequestor = (callback, ignore) => getStyles(callback);
 const getBook = getFromStorage("allPages", []);
 const getTitle = getFromStorage("title", "eBook");
 const getCurrentStyle = getFromStorage("currentStyle", 0);
@@ -67,21 +81,23 @@ const setTitle = setStorage("title");
 const setStyles = setStorage("styles");
 
 
-function clearBook() {
-    chrome.storage.local.remove('allPages');
-    chrome.storage.local.remove('title');
-}
+const clearBook = parseq.parallel([
+    removeFromStorage("allPages"),
+    removeFromStorage("title")
+]);
+
 
 function savePage() {//TODO: action and tabId may be a closure for the following requestors
-    clearBook();//WARNING Deletes the book
 
-    let tabId;
+
+    let sendToTab;
 
     parseq.sequence([
         parseq.parallel([
             tabQuery,
-            getIncludeStyleRequestor,
-            getStylesRequestor//We may optimize checking if custom styles are needed before asking all the styles
+            getIncludeStyle,
+            getStyles,//We may optimize checking if custom styles are needed before asking all the styles
+            clearBook//WARNING Deletes the book
         ]),
         prepareStyles,
         startJob,
@@ -99,7 +115,7 @@ function savePage() {//TODO: action and tabId may be a closure for the following
 
     function prepareStyles(callback, value) {
         const [tab, includeStyle, {styles}] = value;
-        tabId = tab[0].id;
+        sendToTab = sendMessage(tab[0].id);
         const appliedStyles = [];
 
         value.appliedStyles = appliedStyles;
@@ -154,7 +170,7 @@ function savePage() {//TODO: action and tabId may be a closure for the following
         const justAddToBuffer = false;
         const action = "extract-page";
 
-        return sendMessage(tabId)(
+        return sendToTab(
             callback,
             {
                 type: action,
@@ -165,15 +181,15 @@ function savePage() {//TODO: action and tabId may be a closure for the following
     }
 
     function generateOutcome(callback, response) {
-        let mess;
+        let message;
 
         if (response.content.trim() === "") {
             warn.remove();
-            mess = {"alert": "Cannot generate the eBook from an empty selection!"};
+            message = {"alert": "Cannot generate the eBook from an empty selection!"};
         } else {
-            mess = {"shortcut": "build-ebook", response: [response]};
+            message = {"shortcut": "build-ebook", response: [response]};
         }
-        return sendMessage(tabId)(callback, mess);
+        return sendToTab(callback, message);
     }
 }
 
