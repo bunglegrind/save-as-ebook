@@ -1,3 +1,8 @@
+import chr from "./adapter.js";
+
+const {sendRuntimeMessage} = chr;
+
+
 // create menu labels
 document.getElementById('menuTitle').innerHTML = chrome.i18n.getMessage('extName');
 document.getElementById('includeStyle').innerHTML = chrome.i18n.getMessage('includeStyle');
@@ -24,36 +29,34 @@ chrome.commands.getAll((commands) => {
     }
 });
 
-chrome.runtime.sendMessage({
-    type: "is busy?"
-}, function (response) {
+sendRuntimeMessage(function (response) {
     if (response.isBusy) {
         document.getElementById('busy').style.display = 'block';
     } else {
         document.getElementById('busy').style.display = 'none';
     }
-});
+}, {type: "is busy?"});
 
-chrome.runtime.sendMessage({
-    type: "get styles"
-}, function (response) {
+sendRuntimeMessage(function (response) {
     createStyleList(response.styles);
-});
+}, {type: "get styles"});
 
-
-chrome.runtime.sendMessage({
-    type: "get include style"
-}, function (response) {
+sendRuntimeMessage(function (response) {
     const includeStyleCheck = document.getElementById('includeStyleCheck');
     includeStyleCheck.checked = response.includeStyle;
-});
+}, {type: "get include style"});
+
 
 document.getElementById('includeStyleCheck').onclick = function () {
     let includeStyleCheck = document.getElementById('includeStyleCheck');
     chrome.runtime.sendMessage({
         type: "set include style",
         includeStyle: includeStyleCheck.checked
-    }, function (response) {
+    }, function callback(value, reason) {
+        if (value === undefined) {
+            return console.log("reason: menu-set include style " + reason);
+        }
+        return console.log("value: menu-set include style " + value);
     });
 }
 
@@ -120,21 +123,13 @@ document.getElementById('selectionChapter').onclick = function () {
 function dispatch(commandType, justAddToBuffer) {
     console.debug("dispatch: " + commandType);
     document.getElementById('busy').style.display = 'block';
-    if (!justAddToBuffer) {
-        removeEbook();
-    }
+
     chrome.runtime.sendMessage({
-        type: commandType
+        type: commandType,
+        justAddToBuffer
     }, function () {
         //FIXME - hidden before done
         document.getElementById('busy').style.display = 'none';
-    });
-}
-
-function removeEbook() {
-    chrome.runtime.sendMessage({
-        type: "clear book"
-    }, function (response) {
     });
 }
 
