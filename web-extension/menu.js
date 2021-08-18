@@ -1,6 +1,6 @@
 import chr from "./adapter.js";
 
-const {sendRuntimeMessage} = chr;
+const {sendRuntimeMessage, getAllCommands, tabQuery} = chr;
 
 
 // create menu labels
@@ -15,7 +15,7 @@ document.getElementById('editChapters').innerHTML = chrome.i18n.getMessage('edit
 document.getElementById('waitMessage').innerHTML = chrome.i18n.getMessage('waitMessage');
 
 // get all shortcuts and display them in the menuTitle
-chrome.commands.getAll((commands) => {
+getAllCommands((commands) => {
     for (let command of commands) {
         if (command.name === 'save-page') {
             document.getElementById('savePageShortcut').appendChild(document.createTextNode(command.shortcut));
@@ -49,15 +49,16 @@ sendRuntimeMessage(function (response) {
 
 document.getElementById('includeStyleCheck').onclick = function () {
     let includeStyleCheck = document.getElementById('includeStyleCheck');
-    chrome.runtime.sendMessage({
-        type: "set include style",
-        includeStyle: includeStyleCheck.checked
-    }, function callback(value, reason) {
-        if (value === undefined) {
-            return console.log("reason: menu-set include style " + reason);
-        }
-        return console.log("value: menu-set include style " + value);
-    });
+    sendRuntimeMessage(function callback(value, reason) {
+            if (value === undefined) {
+                return console.log("reason: menu-set include style " + reason);
+            }
+            return console.log("value: menu-set include style " + value);
+        },
+        {
+            type: "set include style",
+            includeStyle: includeStyleCheck.checked
+        });
 }
 
 document.getElementById("editStyles").onclick = function () {
@@ -66,19 +67,25 @@ document.getElementById("editStyles").onclick = function () {
         return;
     }
 
-    chrome.tabs.query({
-        currentWindow: true,
-        active: true
-    }, function (tab) {
+    tabQuery(
+        function (tab) {
+            insertCss(tab[0].id)(
+                () => {
+                },
+                {file: '/cssEditor.css'}
+            );
 
-        chrome.tabs.insertCSS(tab[0].id, {file: '/cssEditor.css'});
-
-        chrome.tabs.executeScript(tab[0].id, {
-            file: '/cssEditor.js'
-        });
-
-        window.close();
-    });
+            insertCss(tab[0].id)(
+                () => {
+                },
+                {file: '/cssEditor.js'}
+            );
+            window.close();
+        }, {
+            currentWindow: true,
+            active: true
+        }
+    );
 }
 
 document.getElementById("editChapters").onclick = function () {
@@ -124,12 +131,12 @@ function dispatch(commandType, justAddToBuffer) {
     console.debug("dispatch: " + commandType);
     document.getElementById('busy').style.display = 'block';
 
-    chrome.runtime.sendMessage({
-        type: commandType,
-        justAddToBuffer
-    }, function () {
+    sendRuntimeMessage(function () {
         //FIXME - hidden before done
         document.getElementById('busy').style.display = 'none';
+    }, {
+        type: commandType,
+        justAddToBuffer
     });
 }
 
@@ -172,12 +179,16 @@ function createStyleList(styles) {
             allMatchingStyles.sort(function (a, b) {
                 return b.length - a.length;
             });
-            chrome.runtime.sendMessage({
-                type: "set current style",
-                currentStyle: styles[allMatchingStyles[0].index]
-            }, function (response) {
-            });
+            sendRuntimeMessage(
+                () => {
+                },
+                {
+                    type: "set current style",
+                    currentStyle: styles[allMatchingStyles[0].index]
+                }
+            );
         }
     });
 }
+
 

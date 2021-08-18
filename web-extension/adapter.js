@@ -1,8 +1,20 @@
 function tabQuery(callback, props) {
     return chrome.tabs.query(
         props,
-        callback
+        () => callback("success")
     );
+}
+
+function insertCss(tabId) {
+    return function insertCssRequestor(callback, message) {
+        return chrome.tabs.insertCSS(tabId, message, () => callback("success"));
+    }
+}
+
+function executeScript(tabId) {
+    return function executeScriptRequestor(callback, message) {
+        return chrome.tabs.executeScript(tabId, message, () => callback("success"));
+    }
 }
 
 function sendMessage(tabId) {
@@ -71,11 +83,18 @@ function removeFromStorage(key) {
     }
 }
 
+function getAllCommands(callback) {
+    return chrome.commands.getAll( () => callback("success"));
+}
+
 export default Object.freeze({
     tabQuery,
     sendMessage,
     sendRuntimeMessage,
     getFromStorage,
     setStorage,
-    removeFromStorage
+    removeFromStorage,
+    getAllCommands,
+    insertCss,
+    executeScript
 });
