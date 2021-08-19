@@ -1,21 +1,33 @@
 import chr from "./adapter.js";
+import parseq from "./libs/parseq.js";
 
 const {executeScript, insertCss, sendRuntimeMessage, getAllCommands, tabQuery} = chr;
 
+function factory(requestor, value) {
+    return function (callback) {
+        return requestor(callback, value);
+    }
+}
 
-// create menu labels
-document.getElementById('menuTitle').innerHTML = chrome.i18n.getMessage('extName');
-document.getElementById('includeStyle').innerHTML = chrome.i18n.getMessage('includeStyle');
-document.getElementById('editStyles').innerHTML = chrome.i18n.getMessage('editStyles');
-document.getElementById('savePageLabel').innerHTML = chrome.i18n.getMessage('savePage');
-document.getElementById('saveSelectionLabel').innerHTML = chrome.i18n.getMessage('saveSelection');
-document.getElementById('pageChapterLabel').innerHTML = chrome.i18n.getMessage('pageChapter');
-document.getElementById('selectionChapterLabel').innerHTML = chrome.i18n.getMessage('selectionChapter');
-document.getElementById('editChapters').innerHTML = chrome.i18n.getMessage('editChapters');
-document.getElementById('waitMessage').innerHTML = chrome.i18n.getMessage('waitMessage');
 
-// get all shortcuts and display them in the menuTitle
-getAllCommands((commands) => {
+//TODO: it looks like I'm breaking the Single Responsible Principle...
+parseq.parallel([
+    factory(sendRuntimeMessage, {type: "is busy?"}),
+    factory(sendRuntimeMessage, {type: "get styles"}),
+    factory(sendRuntimeMessage, {type: "get include style"}),
+    getAllCommands
+])(function (responses, reason) {
+    if (responses === undefined) {
+        return console.log(`Error - drawing menu: ${reason}`);
+    }
+
+    document.getElementById("busy").style.display = (responses[0].isBusy) ? "block" : "none";
+    createStyleList(responses[1].styles);
+    document.getElementById("includeStyleCheck").checked = responses[2].includeStyle;
+
+    // get all shortcuts and display them in the menuTitle
+    const commands = responses[3];
+
     for (let command of commands) {
         if (command.name === 'save-page') {
             document.getElementById('savePageShortcut').appendChild(document.createTextNode(command.shortcut));
@@ -27,25 +39,19 @@ getAllCommands((commands) => {
             document.getElementById('selectionChapterShortcut').appendChild(document.createTextNode(command.shortcut));
         }
     }
+
 });
 
-sendRuntimeMessage(function (response) {
-    if (response.isBusy) {
-        document.getElementById('busy').style.display = 'block';
-    } else {
-        document.getElementById('busy').style.display = 'none';
-    }
-}, {type: "is busy?"});
-
-sendRuntimeMessage(function (response) {
-    createStyleList(response.styles);
-}, {type: "get styles"});
-
-sendRuntimeMessage(function (response) {
-    const includeStyleCheck = document.getElementById('includeStyleCheck');
-    includeStyleCheck.checked = response.includeStyle;
-}, {type: "get include style"});
-
+// create menu labels
+document.getElementById('menuTitle').innerHTML = chrome.i18n.getMessage('extName');
+document.getElementById('includeStyle').innerHTML = chrome.i18n.getMessage('includeStyle');
+document.getElementById('editStyles').innerHTML = chrome.i18n.getMessage('editStyles');
+document.getElementById('savePageLabel').innerHTML = chrome.i18n.getMessage('savePage');
+document.getElementById('saveSelectionLabel').innerHTML = chrome.i18n.getMessage('saveSelection');
+document.getElementById('pageChapterLabel').innerHTML = chrome.i18n.getMessage('pageChapter');
+document.getElementById('selectionChapterLabel').innerHTML = chrome.i18n.getMessage('selectionChapter');
+document.getElementById('editChapters').innerHTML = chrome.i18n.getMessage('editChapters');
+document.getElementById('waitMessage').innerHTML = chrome.i18n.getMessage('waitMessage');
 
 document.getElementById('includeStyleCheck').onclick = function () {
     let includeStyleCheck = document.getElementById('includeStyleCheck');
@@ -66,26 +72,29 @@ document.getElementById("editStyles").onclick = function () {
     if (document.getElementById('cssEditor-Modal')) {
         return;
     }
-
-    tabQuery(
-        function (tab) {
-            insertCss(tab[0].id)(
-                () => {
-                },
-                {file: '/cssEditor.css'}
-            );
-
-            executeScript(tab[0].id)(
-                () => {
-                },
-                {file: '/cssEditor.js'}
-            );
+//Build the style editor...
+    parseq.sequence([
+        tabQuery,
+        (callback, tab) => callback(tab[0].id),
+        function (callback, tabId) {
+            return parseq.parallel([
+                factory(insertCss(tabId), {file: "/cssEditor.css"}),
+                factory(executeScript(tabId), {file: "/cssEditor.js"})
+            ])(callback, tabId);
+        },
+        function (callback, value) {
             window.close();
-        }, {
-            currentWindow: true,
-            active: true
+            return callback(value);
         }
-    );
+    ])(function (value, reason) {
+        if (value === undefined) {
+            return console.log(`Error - drawing style editor: ${reason}`);
+        }
+    }, {
+        currentWindow: true,
+        active: true
+    });
+
 }
 
 document.getElementById("editChapters").onclick = function () {

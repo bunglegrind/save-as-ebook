@@ -7,13 +7,23 @@ function tabQuery(callback, props) {
 
 function insertCss(tabId) {
     return function insertCssRequestor(callback, message) {
-        return chrome.tabs.insertCSS(tabId, message, () => callback("success"));
+        return chrome.tabs.insertCSS(tabId, message, function () {
+            if (chrome.runtime.lastError) {
+                return callback(undefined, `executedScript failed: tab - ${tabId} ${chrome.runtime.lastError}`);
+            }
+            return callback("success");
+        });
     }
 }
 
 function executeScript(tabId) {
-    return function executeScriptRequestor(callback, message) {
-        return chrome.tabs.executeScript(tabId, message, () => callback("success"));
+    return function executeScriptRequestor(callback, script) {
+        return chrome.tabs.executeScript(tabId, script, function () {
+            if (chrome.runtime.lastError) {
+                return callback(undefined, `executedScript failed: tab - ${tabId} ${chrome.runtime.lastError}`);
+            }
+            return callback("success");
+        });
     }
 }
 
@@ -84,7 +94,7 @@ function removeFromStorage(key) {
 }
 
 function getAllCommands(callback) {
-    return chrome.commands.getAll( () => callback("success"));
+    return chrome.commands.getAll(callback);
 }
 
 export default Object.freeze({
