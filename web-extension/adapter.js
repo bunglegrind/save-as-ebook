@@ -1,7 +1,7 @@
 function tabQuery(callback, props) {
     return chrome.tabs.query(
         props,
-        () => callback("success")
+        (tab) => callback(tab)
     );
 }
 
@@ -29,9 +29,9 @@ function sendMessage(tabId) {
 }
 
 function sendRuntimeMessage(callback, message) {
-    return chrome.runtime.sendMessage(tabId, message, function (response) {
+    return chrome.runtime.sendMessage(message, function (response) {
         if (chrome.runtime.lastError) {
-            return callback(undefined, `sendMessage failed: tab - ${tabId} ${chrome.runtime.lastError}`);
+            return callback(undefined, `sendRuntimeMessage failed: ${chrome.runtime.lastError}`);
         }
         return callback(response);
     });

@@ -1,6 +1,6 @@
 import chr from "./adapter.js";
 
-const {sendRuntimeMessage, getAllCommands, tabQuery} = chr;
+const {executeScript, insertCss, sendRuntimeMessage, getAllCommands, tabQuery} = chr;
 
 
 // create menu labels
@@ -75,7 +75,7 @@ document.getElementById("editStyles").onclick = function () {
                 {file: '/cssEditor.css'}
             );
 
-            insertCss(tab[0].id)(
+            executeScript(tab[0].id)(
                 () => {
                 },
                 {file: '/cssEditor.js'}
