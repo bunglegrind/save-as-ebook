@@ -4,13 +4,7 @@ import {tap, pipe, prop, forEach, filter, map, props, head, sort} from "./libs/r
 
 const {executeScript, insertCss, sendRuntimeMessage, getAllCommands, tabQuery} = chr;
 
-//TODO: can be retrieved from manifest.json
-const commands = [
-    "save-page",
-    "save-selection",
-    "add-page",
-    "add-selection"
-];
+const commands = Object.keys(chrome.runtime.getManifest().commands);
 
 function factory(requestor, value) {
     return function (callback) {
