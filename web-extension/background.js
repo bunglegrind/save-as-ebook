@@ -182,25 +182,25 @@ function _execRequest(request, sender, sendResponse) {
         core.setBook(request);
     }
     if (request.type === 'clear book') {
-        core.clearBook(callback);
+        core.clearBook(sendResponse);
     }
     if (request.type === 'get title') {
         core.getTitle(sendResponse);
     }
     if (request.type === 'set title') {
-        core.setTitle(callback, request);
+        core.setTitle(sendResponse, request);
     }
     if (request.type === "get styles") {
         core.getStyles(sendResponse);
     }
     if (request.type === 'set styles') {
-        core.setStyles(callback, request);
+        core.setStyles(sendResponse, request);
     }
     if (request.type === 'get current style') {
         core.getCurrentStyle(sendResponse);
     }
     if (request.type === 'set current style') {
-        core.setCurrentStyle(callback, request);
+        core.setCurrentStyle(sendResponse, request);
     }
     if (request.type === 'get include style') {
         core.getIncludeStyle(sendResponse);

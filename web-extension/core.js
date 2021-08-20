@@ -36,7 +36,7 @@ const clearBook = parseq.parallel([
 function savePage() {//TODO: action and tabId may be a closure for the following requestors
 
 
-    let sendToTab;
+    let sendToTab, tabId;
 
     parseq.sequence([
         parseq.parallel([
@@ -62,6 +62,7 @@ function savePage() {//TODO: action and tabId may be a closure for the following
     function prepareStyles(callback, value) {
         const [tab, includeStyle, {styles}] = value;
         sendToTab = sendMessage(tab[0].id);
+        tabId = tab[0].id;
         const appliedStyles = [];
 
         value.appliedStyles = appliedStyles;

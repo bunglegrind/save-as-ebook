@@ -39,9 +39,9 @@ function sendMessage(tabId) {
 }
 
 function sendRuntimeMessage(callback, message) {
-    return chrome.runtime.sendMessage(message, function (response) {
-        if (chrome.runtime.lastError) {
-            return callback(undefined, `sendRuntimeMessage failed: ${chrome.runtime.lastError}`);
+    chrome.runtime.sendMessage(message, function (response) {
+        if (!response && chrome.runtime.lastError) {
+            return callback(undefined, `sendRuntimeMessage (message: ${JSON.stringify(message)}) failed: ${chrome.runtime.lastError}`);
         }
         return callback(response);
     });
