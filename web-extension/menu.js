@@ -1,10 +1,10 @@
 import chr from "./adapter.js";
 import parseq from "./libs/parseq.js";
-import {tap, pipe, prop, forEach} from "./libs/ramda/index.js";
+import {tap, pipe, prop, forEach, filter, map, props, head, sort} from "./libs/ramda/index.js";
 
 const {executeScript, insertCss, sendRuntimeMessage, getAllCommands, tabQuery} = chr;
 
-//TODO: may be retrieved from menu.html
+//TODO: can be retrieved from manifest.json
 const commands = [
     "save-page",
     "save-selection",
@@ -23,7 +23,7 @@ function requestorize(unary) {
         try {
             return callback(unary(value));
         } catch (e) {
-            return callback(undefind, e);
+            return callback(undefined, e);
         }
     }
 }
@@ -39,14 +39,14 @@ parseq.parallel([
     parseq.sequence([
         factory(sendRuntimeMessage, {type: "get styles"}),
         requestorize(pipe(
-            prop("styles"),
-            tap(createStyleList)
-        ))
+            prop("styles")
+        )),
+        createStyleList
     ]),
     parseq.sequence([
         factory(sendRuntimeMessage, {type: "get include style"}),
         requestorize(pipe(
-            prop("includeStyleCheck"),
+            prop("includeStyle"),
             tap((x) => document.getElementById("includeStyleCheck").checked = x)
         ))
     ]),
@@ -54,20 +54,59 @@ parseq.parallel([
     parseq.sequence([
         getAllCommands,
         requestorize(pipe(
-            map(props(["name", "shortcut"])),
             filter((x) => commands.includes(x.name)),
+            map(props(["name", "shortcut"])),
             tap(forEach(
-                (x) => document.getElementById(x[0] + "-shortcut").textContent(x[1])
+                (x) => document.getElementById(x[0] + "-shortcut").textContent = x[1]
             ))
         ))
     ])
 ])
-(function (responses, reason) {
-    if (responses === undefined) {
+(function (value, reason) {
+    if (value === undefined) {
         return console.log(`Error - drawing menu: ${reason}`);
     }
-
 });
+
+function createStyleList(callback, styles) {
+    if (!styles || styles.length === 0) {
+        return callback("success");
+    }
+
+    let allMatchingStyles = styles.map(function (style, i) {
+        return {
+            index: i,
+            length: style.url.length,
+            regexp: new RegExp(style.url, "i")
+        };
+    });
+
+    parseq.sequence([
+        tabQuery,
+        requestorize(head),
+        function (callback, tab) {
+            const currentUrl = tab.url.replace(/(http[s]?:\/\/|www\.)/i, '').toLowerCase();
+            // if multiple URL regexes match, select the longest one
+            allMatchingStyles = allMatchingStyles.filter((style) => style.regexp && style.regexp.test(currentUrl));
+
+            const index = pipe(
+                sort((a, b) => b.length - a.length),
+                head,
+                prop("index")
+            )(allMatchingStyles);
+
+            if (index !== undefined) {
+                return sendRuntimeMessage(callback, {
+                    type: "set current style",
+                    currentStyle: styles[index]
+                });
+            }
+
+            return callback("success");
+        }
+    ])(callback, {"active": true});
+}
+
 
 // create menu labels
 document.getElementById('menuTitle').innerHTML = chrome.i18n.getMessage('extName');
@@ -94,6 +133,8 @@ document.getElementById('includeStyleCheck').onclick = function () {
         });
 }
 
+const firstTabId = requestorize(pipe(head, prop("id")));
+
 document.getElementById("editStyles").onclick = function () {
 
     if (document.getElementById('cssEditor-Modal')) {
@@ -102,15 +143,15 @@ document.getElementById("editStyles").onclick = function () {
 //Build the style editor...
     parseq.sequence([
         tabQuery,
-        (callback, tab) => callback(tab[0].id),
-        function (callback, tabId) {
+        firstTabId,
+        function injectScripts(callback, tabId) {
             return parseq.parallel([
                 factory(insertCss(tabId), {file: "/cssEditor.css"}),
                 factory(executeScript(tabId), {file: "/cssEditor.js"})
             ])(callback, tabId);
         },
         function (callback, value) {
-            window.close();
+            window.close();//closes menu
             return callback(value);
         }
     ])(function (value, reason) {
@@ -130,21 +171,30 @@ document.getElementById("editChapters").onclick = function () {
         return;
     }
 
-    chrome.tabs.query({
+    parseq.sequence([
+        tabQuery,
+        firstTabId,
+        function injectScripts(callback, tabId) {
+            return parseq.parallel([
+                factory(insertCss(tabId), {file: "/chapterEditor.css"}),
+                factory(executeScript(tabId), {file: "./libs/jquery.js"}),
+                factory(executeScript(tabId), {file: "./libs/jquery-sortable.js"}),
+                factory(executeScript(tabId), {file: "./chapterEditor.js"})
+            ])(callback, tabId);
+        },
+        function (callback, value) {
+            window.close();//closes menu
+            return callback(value);
+        }
+    ])(function (value, reason) {
+        if (value === undefined) {
+            return console.log(`Error - drawing book editor: ${reason}`);
+        }
+    }, {
         currentWindow: true,
         active: true
-    }, function (tab) {
-
-        chrome.tabs.executeScript(tab[0].id, {file: './libs/jquery.js'});
-        chrome.tabs.executeScript(tab[0].id, {file: './libs/jquery-sortable.js'});
-        chrome.tabs.insertCSS(tab[0].id, {file: '/chapterEditor.css'});
-
-        chrome.tabs.executeScript(tab[0].id, {
-            file: '/chapterEditor.js'
-        });
-
-        window.close();
     });
+
 };
 
 document.getElementById('savePage').onclick = function () {
@@ -175,56 +225,4 @@ function dispatch(commandType, justAddToBuffer) {
         justAddToBuffer
     });
 }
-
-function createStyleList(styles) {
-    chrome.tabs.query({'active': true}, function (tabs) {
-        let currentUrl = tabs[0].url;
-
-        if (!styles || styles.length === 0) {
-            return;
-        }
-
-        // if multiple URL regexes match, select the longest one
-        let allMatchingStyles = [];
-
-        for (let i = 0; i < styles.length; i++) {
-            let listItem = document.createElement('option');
-            listItem.id = 'option_' + i;
-            listItem.className = 'cssEditor-chapter-item';
-            listItem.value = 'option_' + i;
-            listItem.innerText = styles[i].title;
-
-            currentUrl = currentUrl.replace(/(http[s]?:\/\/|www\.)/i, '').toLowerCase();
-            let styleUrl = styles[i].url;
-            let styleUrlRegex = null;
-
-            try {
-                styleUrlRegex = new RegExp(styleUrl, 'i');
-            } catch (e) {
-            }
-
-            if (styleUrlRegex && styleUrlRegex.test(currentUrl)) {
-                allMatchingStyles.push({
-                    index: i,
-                    length: styleUrl.length
-                });
-            }
-        }
-
-        if (allMatchingStyles.length >= 1) {
-            allMatchingStyles.sort(function (a, b) {
-                return b.length - a.length;
-            });
-            sendRuntimeMessage(
-                () => {
-                },
-                {
-                    type: "set current style",
-                    currentStyle: styles[allMatchingStyles[0].index]
-                }
-            );
-        }
-    });
-}
-
 
