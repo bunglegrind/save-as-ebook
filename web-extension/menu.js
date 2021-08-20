@@ -1,7 +1,16 @@
 import chr from "./adapter.js";
 import parseq from "./libs/parseq.js";
+import {tap, pipe, prop, forEach} from "./libs/ramda/index.js";
 
 const {executeScript, insertCss, sendRuntimeMessage, getAllCommands, tabQuery} = chr;
+
+//TODO: may be retrieved from menu.html
+const commands = [
+    "save-page",
+    "save-selection",
+    "add-page",
+    "add-selection"
+];
 
 function factory(requestor, value) {
     return function (callback) {
@@ -9,35 +18,53 @@ function factory(requestor, value) {
     }
 }
 
+function requestorize(unary) {
+    return function (callback, value) {
+        try {
+            return callback(unary(value));
+        } catch (e) {
+            return callback(undefind, e);
+        }
+    }
+}
 
-//TODO: it looks like I'm breaking the Single Responsible Principle...
 parseq.parallel([
-    factory(sendRuntimeMessage, {type: "is busy?"}),
-    factory(sendRuntimeMessage, {type: "get styles"}),
-    factory(sendRuntimeMessage, {type: "get include style"}),
-    getAllCommands
-])(function (responses, reason) {
+    parseq.sequence([
+        factory(sendRuntimeMessage, {type: "is busy?"}),
+        requestorize(pipe(
+            prop("isBusy"),
+            tap((x) => document.getElementById("busy").style.display = (x) ? "block" : "none")
+        ))
+    ]),
+    parseq.sequence([
+        factory(sendRuntimeMessage, {type: "get styles"}),
+        requestorize(pipe(
+            prop("styles"),
+            tap(createStyleList)
+        ))
+    ]),
+    parseq.sequence([
+        factory(sendRuntimeMessage, {type: "get include style"}),
+        requestorize(pipe(
+            prop("includeStyleCheck"),
+            tap((x) => document.getElementById("includeStyleCheck").checked = x)
+        ))
+    ]),
+    // get all shortcuts and display them in the menuTitle
+    parseq.sequence([
+        getAllCommands,
+        requestorize(pipe(
+            map(props(["name", "shortcut"])),
+            filter((x) => commands.includes(x.name)),
+            tap(forEach(
+                (x) => document.getElementById(x[0] + "-shortcut").textContent(x[1])
+            ))
+        ))
+    ])
+])
+(function (responses, reason) {
     if (responses === undefined) {
         return console.log(`Error - drawing menu: ${reason}`);
-    }
-
-    document.getElementById("busy").style.display = (responses[0].isBusy) ? "block" : "none";
-    createStyleList(responses[1].styles);
-    document.getElementById("includeStyleCheck").checked = responses[2].includeStyle;
-
-    // get all shortcuts and display them in the menuTitle
-    const commands = responses[3];
-
-    for (let command of commands) {
-        if (command.name === 'save-page') {
-            document.getElementById('savePageShortcut').appendChild(document.createTextNode(command.shortcut));
-        } else if (command.name === 'save-selection') {
-            document.getElementById('saveSelectionShortcut').appendChild(document.createTextNode(command.shortcut));
-        } else if (command.name === 'add-page') {
-            document.getElementById('pageChapterShortcut').appendChild(document.createTextNode(command.shortcut));
-        } else if (command.name === 'add-selection') {
-            document.getElementById('selectionChapterShortcut').appendChild(document.createTextNode(command.shortcut));
-        }
     }
 
 });
