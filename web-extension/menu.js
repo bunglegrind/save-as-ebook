@@ -1,6 +1,8 @@
 import chr from "./adapter.js";
 import parseq from "./libs/parseq.js";
-import {tap, pipe, prop, forEach, filter, map, props, head, sort} from "./libs/ramda/index.js";
+//import {tap, pipe, prop, forEach, filter, map, props, head, sort} from "./libs/ramda/index.js";
+
+const {tap, pipe, prop, forEach, filter, map, props, head, sort} = R;
 
 const {executeScript, insertCss, sendRuntimeMessage, getAllCommands, tabQuery} = chr;
 
@@ -207,15 +209,14 @@ document.getElementById('selectionChapter').onclick = function () {
     dispatch('add-selection', true);
 };
 
-function dispatch(commandType, justAddToBuffer) {
-    console.debug("dispatch: " + commandType);
+function dispatch(type, justAddToBuffer) {
+    console.debug("dispatch: " + type);
     document.getElementById('busy').style.display = 'block';
 
-    sendRuntimeMessage(function () {
-        //FIXME - hidden before done
+    sendRuntimeMessage(function (value, reason) {
         document.getElementById('busy').style.display = 'none';
     }, {
-        type: commandType,
+        type,
         justAddToBuffer
     });
 }

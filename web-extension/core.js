@@ -52,7 +52,7 @@ function savePage() {//TODO: action and tabId may be a closure for the following
         if (value === undefined) {
             return console.log(reason);
         }
-        return console.log(value);
+        return console.log(`savePage: ${value}`);
     }, {
         currentWindow: true,
         active: true
