@@ -220,3 +220,6 @@ function _execRequest(request, sender, sendResponse) {
     }
     return true;
 }
+
+window.core = core;
+window.executeCommand = executeCommand;
