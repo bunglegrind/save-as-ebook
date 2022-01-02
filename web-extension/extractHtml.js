@@ -60,11 +60,9 @@ var supportedCss = [
     'list-style',
     'margin-top',
     'margin-bottom',
-    'margin-right',
     'margin-left',
     'padding-top',
     'padding-bottom',
-    'padding-right',
     'padding-left',
     'text-align',
     'display'
