@@ -142,28 +142,41 @@ function extractSvgToImg($htmlObject) {
 
 // replaces all iframes by divs with the same innerHTML content
 function extractIFrames() {
-    let allIframes = document.getElementsByTagName('iframe')
-    let changeIFrames = []
-    let newDivs = []
-    for (let iFrame of allIframes) {
-        if (!iFrame.contentDocument || !iFrame.contentDocument.body) {
-            continue
+	function addIdInStyle(style, id) {
+		return style.split("{").map(function (segment) {
+			const selectors = segment.split("}");
+			// if the CSS is well formed, selectors may be 1 element (for the first 
+			// rule) or 2 elements array. Last element is the one which contains the
+			// actual selectors.
+			selectors[selectors.length - 1] = selectors[selectors.length - 1]
+				.split(",")
+				.map(function (selector) {
+				return (
+					selector.trim().length > 0//check if it's just an empty line
+					? "#" + id + " " + selector.replace("body", "")
+					: selector
+				);
+			});
+			return selectors.join("}");
+		}).join("{");
+	}
+    const iframes = Array.from(document.querySelectorAll("iframe"));
+    const divs = iframes.map(function (iframe, index) {
+        const div = document.createElement("div");
+        div.id = "save-as-ebook-iframe-" + index;
+        if (!iframe.contentDocument || !iframe.contentDocument.body) {
+            return div;
         }
-        let bodyContent = iFrame.contentDocument.body.innerHTML
-        let bbox = iFrame.getBoundingClientRect()
-        let newDiv = document.createElement('div')
-        newDiv.style.width = bbox.width
-        newDiv.style.height = bbox.height
-        newDiv.innerHTML = bodyContent
-        changeIFrames.push(iFrame)
-        newDivs.push(newDiv)
-    }
-    for (let i = 0; i < newDivs.length; i++) {
-        let newDiv = newDivs[i]
-        let iFrame = changeIFrames[i]
-        let iframeParent = iFrame.parentNode
-        iframeParent.replaceChild(newDiv, iFrame)
-    }
+        const bbox = iframe.getBoundingClientRect();
+        div.style.width = bbox.width;
+        div.style.height = bbox.height;
+        div.innerHTML = iframe.contentDocument.body.innerHTML;
+        Array.from(div.querySelectorAll("style")).forEach(function (style) {
+            style.innerHTML = addIdInStyle(style.innerHTML, div.id);
+        });
+        return div;
+    });
+    iframes.forEach((iframe, i) => iframe.parentNode.replaceChild(divs[i], iframe));
 }
 
 function preProcess($htmlObject) {
