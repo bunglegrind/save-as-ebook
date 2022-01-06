@@ -365,7 +365,20 @@ function extractCss(includeStyle, appliedStyles) {
                     for (let cssTagName of supportedCss) {
                         let cssValue = $pre.css(cssTagName);
                         if (cssValue && cssValue.length > 0) {
-                            tmpNewCss[cssTagName] = cssValue;
+							if (cssTagName === "font-size") {
+                                const parentFontSize = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("font-size"));
+                                if (parentFontSize > 0) {
+                                    cssValue = (parseInt(cssValue)/parentFontSize).toFixed(1) + "em";
+                                }
+                            }
+							if (cssTagName === "line-height") {
+                                const fontSize = parseInt($pre.css("font-size"));
+								const numCssValue = parseInt(cssValue);
+								if (numCssValue > 0) {
+									cssValue = (numCssValue / fontSize).toFixed(1);
+								}
+                            }
+							tmpNewCss[cssTagName] = cssValue;
                         }
                     }
 
