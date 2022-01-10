@@ -4,21 +4,21 @@
 // 1. Create a dummy link
 // 2. Detect image type from the binary data & create new links
 // 3. Replace all the dummy links in tmpGlobalContent with the new links
-var tmpGlobalContent = null
+var tmpGlobalContent = null;
 
 var allImages = [];
 var extractedImages = [];
-var allowedTags = [
-    'address', 'article', 'aside', 'footer', 'header', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'hgroup', 'nav', 'section', 'dd', 'div', 'dl', 'dt', 'figcaption', 'figure', 'hr', 'li',
-    'main', 'ol', 'p', 'pre', 'ul', 'a', 'abbr', 'b', 'bdi', 'bdo', 'br', 'cite', 'code', 'data',
-    'dfn', 'em', 'i', 'img', 'kbd', 'mark', 'q', 'rb', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 'small', 'span',
-    'strong', 'sub', 'sup', 'time', 'u', 'var', 'wbr', 'del', 'ins', 'caption', 'col', 'colgroup',
-    'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr',
-    'math', 'maction', 'menclose', 'merror', 'mfenced', 'mfrac', 'mglyph', 'mi', 'mlabeledtr', 'mmultiscripts', 'mn', 'mo', 'mover', 'mpadded', 'mphantom', 'mroot',
-    'mrow', 'ms', 'mspace', 'msqrt', 'mstyle', 'msub', 'msup', 'msubsup', 'mtable', 'mtd', 'mtext', 'mtr', 'munder', 'munderover', 'msgroup', 'mlongdiv', 'mscarries',
-    'mscarry', 'mstack', 'semantics'
-    // TODO ? 
+const allowedTags = [
+    "address", "article", "aside", "footer", "header", "h1", "h2", "h3", "h4", "h5", "h6",
+    "hgroup", "nav", "section", "dd", "div", "dl", "dt", "figcaption", "figure", "hr", "li",
+    "main", "ol", "p", "pre", "ul", "a", "abbr", "b", "bdi", "bdo", "br", "cite", "code", "data",
+    "dfn", "em", "i", "img", "kbd", "mark", "q", "rb", "rp", "rt", "rtc", "ruby", "s", "samp", "small", "span",
+    "strong", "sub", "sup", "time", "u", "var", "wbr", "del", "ins", "caption", "col", "colgroup",
+    "table", "tbody", "td", "tfoot", "th", "thead", "tr",
+    "math", "maction", "menclose", "merror", "mfenced", "mfrac", "mglyph", "mi", "mlabeledtr", "mmultiscripts", "mn", "mo", "mover", "mpadded", "mphantom", "mroot",
+    "mrow", "ms", "mspace", "msqrt", "mstyle", "msub", "msup", "msubsup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "msgroup", "mlongdiv", "mscarries",
+    "mscarry", "mstack", "semantics"
+    // TODO ?
     // ,'form', 'button'
 
     // TODO svg support ?
@@ -26,24 +26,24 @@ var allowedTags = [
 ];
 // const svgTags = ['svg', 'g', 'path', 'line', 'circle', 'text']
 var mathMLTags = [
-    'math', 'maction', 'menclose', 'merror', 'mfenced', 'mfrac', 'mglyph', 'mi', 'mlabeledtr', 'mmultiscripts', 'mn', 'mo', 'mover', 'mpadded', 'mphantom', 'mroot',
-    'mrow', 'ms', 'mspace', 'msqrt', 'mstyle', 'msub', 'msup', 'msubsup', 'mtable', 'mtd', 'mtext', 'mtr', 'munder', 'munderover', 'msgroup', 'mlongdiv', 'mscarries',
-    'mscarry', 'mstack', 'semantics'
+    "math", "maction", "menclose", "merror", "mfenced", "mfrac", "mglyph", "mi", "mlabeledtr", "mmultiscripts", "mn", "mo", "mover", "mpadded", "mphantom", "mroot",
+    "mrow", "ms", "mspace", "msqrt", "mstyle", "msub", "msup", "msubsup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "msgroup", "mlongdiv", "mscarries",
+    "mscarry", "mstack", "semantics"
 ]
 var cssClassesToTmpIds = {};
 var tmpIdsToNewCss = {};
 var tmpIdsToNewCssSTRING = {};
 
 // src: https://idpf.github.io/a11y-guidelines/content/style/reference.html
-var supportedCss = [
-    'background-color',
-    'border',
-    'color', 
-    'font',
-    'line-height',
-    'list-style',
-    'padding',
-    'text-align', 
+const supportedCss = [
+    "background-color",
+    "border",
+    "color",
+    "font",
+    "line-height",
+    "list-style",
+    "padding",
+    "text-align",
 ];
 //////
 
@@ -52,20 +52,20 @@ function getImageSrc(srcTxt) {
         return '';
     }
     srcTxt = srcTxt.trim();
-    if (srcTxt === '') {
-        return '';
+    if (srcTxt === "") {
+        return "";
     }
 
     // TODO move
-    srcTxt = srcTxt.replace(/&amp;/g, '&')
+    srcTxt = srcTxt.replace(/&amp;/g, "&")
 
     // TODO - convert <imgs> with svg sources to jpeg OR add support for svg
 
     let fileExtension = getFileExtension(srcTxt);
-    if (fileExtension === '') {
+    if (fileExtension === "") {
        fileExtension = "TODO-EXTRACT"
     }
-    let newImgFileName = 'img-' + generateRandomNumber(true) + '.' + fileExtension;
+    let newImgFileName = "img-" + generateRandomNumber(true) + '.' + fileExtension;
 
     let isB64Img = isBase64Img(srcTxt);
     if (isB64Img) {
@@ -73,20 +73,21 @@ function getImageSrc(srcTxt) {
             filename: newImgFileName, // TODO name
             data: getBase64ImgData(srcTxt)
         });
-    } else {        
+    } else {
         allImages.push({
             originalUrl: getImgDownloadUrl(srcTxt),
             filename: newImgFileName,  // TODO name
         });
     }
 
-    return '../images/' + newImgFileName;
+    return "../images/" + newImgFileName;
 }
 
 // tested
 function extractMathMl(element) {
 		element.querySelectorAll("span[id^=\"MathJax-Element-\"]").forEach(
 		function (e) {
+            console.log("hello, world");
 			e.outerHTML = "<span>" + e.getAttribute("data-mathml") + "</span>";
 		}
 	);
@@ -127,16 +128,16 @@ function extractSvgToImg(element) {
 
 // replaces all iframes by divs with the same innerHTML content
 function extractIFrames() {
-    let allIframes = document.getElementsByTagName('iframe')
+    let allIframes = document.getElementsByTagName("iframe")
     let changeIFrames = []
     let newDivs = []
     for (let iFrame of allIframes) {
         if (!iFrame.contentDocument || !iFrame.contentDocument.body) {
             continue
         }
-        let bodyContent = iFrame.contentDocument.body.innerHTML        
+        let bodyContent = iFrame.contentDocument.body.innerHTML
         let bbox = iFrame.getBoundingClientRect()
-        let newDiv = document.createElement('div')
+        let newDiv = document.createElement("div")
         newDiv.style.width = bbox.width
         newDiv.style.height = bbox.height
         newDiv.innerHTML = bodyContent
@@ -172,78 +173,78 @@ function parseHTML(rawContentString) {
                     return;
                 }
 
-                if (tag === 'img') {
+                if (tag === "img") {
                     let tmpAttrsTxt = '';
                     let tmpSrc = ''
                     for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === 'src') {
+                        if (attrs[i].name === "src") {
                             tmpSrc = getImageSrc(attrs[i].value)
-                            tmpAttrsTxt += ' src="' + tmpSrc + '"';
-                        } else if (attrs[i].name === 'data-class') {
-                            tmpAttrsTxt += ' class="' + attrs[i].value + '"';
-                        } else if (attrs[i].name === 'width') {
+                            tmpAttrsTxt += " src=\"" + tmpSrc + "\"";
+                        } else if (attrs[i].name === "data-class") {
+                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
+                        } else if (attrs[i].name === "width") {
                             // used when converting svg to img - the result image was too big
-                            tmpAttrsTxt += ' width="' + attrs[i].value + '"';
-                        } else if (attrs[i].name === 'height') {
+                            tmpAttrsTxt += " width=\"" + attrs[i].value + "\"";
+                        } else if (attrs[i].name === "height") {
                             // used when converting svg to img - the result image was too big
-                            tmpAttrsTxt += ' height="' + attrs[i].value + '"';
+                            tmpAttrsTxt += " height=\"" + attrs[i].value + "\"";
                         }
                     }
-                    if (tmpSrc === '') {
+                    if (tmpSrc === "") {
                         // ignore imgs without source
-                        lastFragment = ''
+                        lastFragment = "";
                     } else {
-                        lastFragment = tmpAttrsTxt.length === 0 ? '<img></img>' : '<img' + tmpAttrsTxt + ' alt=""></img>';
+                        lastFragment = tmpAttrsTxt.length === 0 ? "<img></img>" : "<img" + tmpAttrsTxt + " alt=\"\"></img>";
                     }
-                } else if (tag === 'a') {
-                    let tmpAttrsTxt = '';
+                } else if (tag === "a") {
+                    let tmpAttrsTxt = "";
                     for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === 'href') {
-                            tmpAttrsTxt += ' href="' + getHref(attrs[i].value) + '"';
-                        } else if (attrs[i].name === 'data-class') {
-                            tmpAttrsTxt += ' class="' + attrs[i].value + '"';
+                        if (attrs[i].name === "href") {
+                            tmpAttrsTxt += " href=\"" + getHref(attrs[i].value) + "\"";
+                        } else if (attrs[i].name === "data-class") {
+                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
                         }
                     }
-                    lastFragment = tmpAttrsTxt.length === 0 ? '<a>' : '<a' + tmpAttrsTxt + '>';
-                } else if (tag === 'br' || tag === 'hr') {
-                    let tmpAttrsTxt = '';
+                    lastFragment = tmpAttrsTxt.length === 0 ? "<a>" : "<a" + tmpAttrsTxt + ">";
+                } else if (tag === "br" || tag === "hr") {
+                    let tmpAttrsTxt = "";
                     for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === 'data-class') {
-                            tmpAttrsTxt += ' class="' + attrs[i].value + '"';
+                        if (attrs[i].name === "data-class") {
+                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
                         }
                     }
-                    lastFragment = '<' + tag + tmpAttrsTxt + '></' + tag + '>';
-                } else if (tag === 'math') {
+                    lastFragment = "<" + tag + tmpAttrsTxt + "></" + tag + ">";
+                } else if (tag === "math") {
                     let tmpAttrsTxt = '';
-                    tmpAttrsTxt += ' xmlns="http://www.w3.org/1998/Math/MathML"';
+                    tmpAttrsTxt += " xmlns=\"http://www.w3.org/1998/Math/MathML\"";
                     for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === 'alttext') {
-                            tmpAttrsTxt += ' alttext="' + attrs[i].value + '"';
+                        if (attrs[i].name === "alttext") {
+                            tmpAttrsTxt += " alttext=\"" + attrs[i].value + "\"";
                         }
                     }
-                    lastFragment = '<' + tag + tmpAttrsTxt + '>';
+                    lastFragment = "<" + tag + tmpAttrsTxt + ">";
                 } else {
-                    let tmpAttrsTxt = '';
+                    let tmpAttrsTxt = "";
                     for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === 'data-class') {
-                            tmpAttrsTxt += ' class="' + attrs[i].value + '"';
+                        if (attrs[i].name === "data-class") {
+                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
                         }
                     }
-                    lastFragment = '<' + tag + tmpAttrsTxt + '>';
+                    lastFragment = "<" + tag + tmpAttrsTxt + ">";
                 }
 
                 results += lastFragment;
-                lastFragment = '';
+                lastFragment = "";
             },
             end: function(tag) {
-                if (allowedTags.indexOf(tag) < 0 || tag === 'img' || tag === 'br' || tag === 'hr') {
+                if (allowedTags.indexOf(tag) < 0 || tag === "img" || tag === "br" || tag === "hr") {
                     return;
                 }
 
                 results += "</" + tag + ">";
             },
             chars: function(text) {
-                if (lastTag !== '' && allowedTags.indexOf(lastTag) < 0) {
+                if (lastTag !== "" && allowedTags.indexOf(lastTag) < 0) {
                     return;
                 }
                 results += text;
@@ -254,13 +255,13 @@ function parseHTML(rawContentString) {
         });
 
         // TODO - (re)move
-        results = results.replace(/&nbsp;/gi, '&#160;');
+        results = results.replace(/&nbsp;/gi, "&#160;");
 
         return results;
 
     } catch (e) {
-        console.log('Error:', e);
-        return 'Error: ' + e  //+"  " + force($(rawContentString))
+        console.log("Error:", e);
+        return "Error: " + e  //+"  " + force($(rawContentString))
     }
 
 }
@@ -269,12 +270,12 @@ function getContent(htmlContent) {
     try {
         // TODO - move; called multiple times on selection
         preProcess(document.querySelector("body"));
-        let tmp = document.createElement('div');
+        let tmp = document.createElement("div");
         tmp.appendChild(htmlContent.cloneNode(true));
-        let tmpHtml = '<div>' + tmp.innerHTML + '</div>';
+        let tmpHtml = "<div>" + tmp.innerHTML + "</div>";
         return parseHTML(tmpHtml);
     } catch (e) {
-        console.log('Error:', e);
+        console.log("Error:", e);
         return htmlContent;
     }
 }
@@ -296,19 +297,17 @@ function getSelectedNodes() {
 
 /////
 
-function isVisible(element) {
-	return (
-		element.style.display !== "none"//probably redundant
-		|| (
-			element.offsetWidth <= 0
-			&& element.offsetHeight <= 0
-		)
-	);
+function isVisible(elem) {
+	return Boolean(
+        elem.offsetWidth
+        || elem.offsetHeight
+        || elem.getClientRects().length
+    );
 }
 
 function extractCss(includeStyle, appliedStyles) {
     if (includeStyle) {
-        querySelectorAll("body *").forEach((pre, i) => {
+        document.querySelectorAll("body *").forEach(function (pre, i) {
             if (
 				allowedTags.indexOf(pre.tagName.toLowerCase()) < 0
 				|| mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1
@@ -332,23 +331,24 @@ function extractCss(includeStyle, appliedStyles) {
                 let tmpNewCss = tmpIdsToNewCss[tmpName];
                 if (!tmpName) {
                     // TODO - collision  between class names when multiple pages
-                    tmpName = generateRandomTag(2) + i
+                    tmpName = generateRandomTag(2) + i;
                     cssClassesToTmpIds[classNames] = tmpName;
                 }
                 if (!tmpNewCss) {
                     tmpNewCss = {};
+                    const styles = window.getComputedStyle(pre);
 
                     for (let cssTagName of supportedCss) {
-                        const cssValue = $pre.css(cssTagName);
-                        if (cssValue && cssValue.length > 0) {
+                        const cssValue = styles.getPropertyValue(cssTagName);
+                        if (cssValue.length > 0) {
                             tmpNewCss[cssTagName] = cssValue;
                         }
                     }
 
                     // Reuse CSS - if the same css code was generated for another element, reuse it's class name
 
-                    let tcss = JSON.stringify(tmpNewCss)
-                    let found = false
+                    const tcss = JSON.stringify(tmpNewCss);
+                    let found = false;
 
                     if (Object.keys(tmpIdsToNewCssSTRING).length === 0) {
                         tmpIdsToNewCssSTRING[tmpName] = tcss;
@@ -356,9 +356,9 @@ function extractCss(includeStyle, appliedStyles) {
                     } else {
                         for (const key in tmpIdsToNewCssSTRING) {
                             if (tmpIdsToNewCssSTRING[key] === tcss) {
-                                tmpName = key
-                                found = true
-                                break
+                                tmpName = key;
+                                found = true;
+                                break;
                             }
                         }
                         if (!found) {
@@ -367,19 +367,18 @@ function extractCss(includeStyle, appliedStyles) {
                         }
                     }
                 }
-                pre.setAttribute('data-class', tmpName);
+                pre.setAttribute("data-class", tmpName);
             }
         });
         return jsonToCss(tmpIdsToNewCss);
     } else {
         // remove hidden elements when style is not included
-        $('body').find('*').each((i, pre) => {
-            let $pre = $(pre)
-            if (!$pre.is(':visible')) {
-                $pre.replaceWith('')
+        document.querySelectorAll("body *").forEach(function ( pre) {
+            if (!isVisible(pre)) {
+                pre.outerHTML = "";
             }
-        })
-        let mergedCss = '';
+        });
+        let mergedCss = "";
         if (appliedStyles && appliedStyles.length > 0) {
             for (let i = 0; i < appliedStyles.length; i++) {
                 mergedCss += appliedStyles[i].style;
@@ -387,95 +386,96 @@ function extractCss(includeStyle, appliedStyles) {
             return mergedCss;
         }
     }
-    return null
+    return null;
 }
 
 /////
 
-function deferredAddZip(url, filename) {
-    let deferred = $.Deferred();
-    JSZipUtils.getBinaryContent(url, function(err, data) {        
-        if (err) {
-            // deferred.reject(err); TODO
-            console.log('Error:', err);
-            deferred.resolve();
-        } else {
-            // TODO - move to utils.js
-            if (filename.endsWith("TODO-EXTRACT")) {
-                let oldFilename = filename
-                let arr = (new Uint8Array(data)).subarray(0, 4);
-                let header = "";
-                for(let i = 0; i < arr.length; i++) {
-                    header += arr[i].toString(16);
+function promiseAddZip(url, filename) {
+    const promise = new Promise(function (resolve, reject) {
+        JSZipUtils.getBinaryContent(url, function(err, data) {
+            if (err) {
+                // deferred.reject(err); TODO
+                console.log("Error:", err);
+                resolve();
+            } else {
+                // TODO - move to utils.js
+                if (filename.endsWith("TODO-EXTRACT")) {
+                    let oldFilename = filename
+                    let arr = (new Uint8Array(data)).subarray(0, 4);
+                    let header = "";
+                    for(let i = 0; i < arr.length; i++) {
+                        header += arr[i].toString(16);
+                    }
+                    if (header.startsWith("89504e47")) {
+                        filename = filename.replace("TODO-EXTRACT", "png")
+                    } else if (header.startsWith("47494638")) {
+                        filename = filename.replace("TODO-EXTRACT", "gif")
+                    } else if (header.startsWith("ffd8ff")) {
+                        filename = filename.replace("TODO-EXTRACT", "jpg")
+                    } else {
+                        // ERROR
+                        console.log("Error! Unable to extract the image type!");
+                        resolve();
+                    }
+                    tmpGlobalContent = tmpGlobalContent.replace(oldFilename, filename)
                 }
-                if (header.startsWith("89504e47")) {
-                    filename = filename.replace("TODO-EXTRACT", "png")
-                } else if (header.startsWith("47494638")) {
-                    filename = filename.replace("TODO-EXTRACT", "gif")
-                } else if (header.startsWith("ffd8ff")) {
-                    filename = filename.replace("TODO-EXTRACT", "jpg")
-                } else {
-                    // ERROR
-                    console.log("Error! Unable to extract the image type!");
-                    deferred.resolve();
-                }
-                tmpGlobalContent = tmpGlobalContent.replace(oldFilename, filename)
+
+                extractedImages.push({
+                    filename: filename,
+                    // TODO - must be JSON serializable
+                    data: base64ArrayBuffer(data)
+                });
+                resolve();
             }
-                        
-            extractedImages.push({
-                filename: filename,
-                // TODO - must be JSON serializable
-                data: base64ArrayBuffer(data)
-            });
-            
-            deferred.resolve();
-        }
+        });
     });
-    return deferred;
+    return promise;
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     let imgsPromises = [];
     let result = {};
-    let pageSrc = '';
-    let tmpContent = '';
+    let pageSrc = "";
+    let tmpContent = "";
     let styleFile = null;
 
-    extractIFrames()
+    extractIFrames();
 
-    if (request.type === 'extract-page') {
-        styleFile = extractCss(request.includeStyle, request.appliedStyles)
-        pageSrc = document.getElementsByTagName('body')[0];
+    if (request.type === "extract-page") {
+        styleFile = extractCss(request.includeStyle, request.appliedStyles);
+        pageSrc = document.getElementsByTagName("body")[0];
         tmpContent = getContent(pageSrc);
-    } else if (request.type === 'extract-selection') {
-        styleFile = extractCss(request.includeStyle, request.appliedStyles)
+    } else if (request.type === "extract-selection") {
+        styleFile = extractCss(request.includeStyle, request.appliedStyles);
         pageSrc = getSelectedNodes();
-        pageSrc.forEach((page) => {
+        pageSrc.forEach(function (page) {
             tmpContent += getContent(page);
         });
     }
 
-    tmpGlobalContent = tmpContent
+    tmpGlobalContent = tmpContent;
 
-    allImages.forEach((tmpImg) => {
-        imgsPromises.push(deferredAddZip(tmpImg.originalUrl, tmpImg.filename));
+    allImages.forEach(function (tmpImg) {
+        imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
     });
 
-    $.when.apply($, imgsPromises).done(() => {
-        let tmpTitle = getPageTitle(document.title);
-        result = {
-            url: getPageUrl(tmpTitle),
-            title: tmpTitle,
-            baseUrl: getCurrentUrl(),
-            styleFileContent: styleFile,
-            styleFileName: 'style' + generateRandomNumber() + '.css',
-            images: extractedImages,
-            content: tmpGlobalContent
-        };
-        sendResponse(result);
-    }).fail((e) => {
-        console.log('Error:', e);
-        sendResponse(null)
+    Promise.all(imgsPromises).then(function () {
+            const tmpTitle = getPageTitle(document.title);
+            result = {
+                url: getPageUrl(tmpTitle),
+                title: tmpTitle,
+                baseUrl: getCurrentUrl(),
+                styleFileContent: styleFile,
+                styleFileName: "style" + generateRandomNumber() + ".css",
+                images: extractedImages,
+                content: tmpGlobalContent
+            };
+            sendResponse(result);
+        }
+    ).catch(function (e) {
+        console.log("Error:", e);
+        sendResponse(null);
     });
 
     return true;
