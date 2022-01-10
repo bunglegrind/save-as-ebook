@@ -84,35 +84,44 @@ function getImageSrc(srcTxt) {
 }
 
 // tested
-function extractMathMl($htmlObject) {
-    $htmlObject.find('span[id^="MathJax-Element-"]').each(function (i, el) {
-        $(el).replaceWith('<span>' + el.getAttribute('data-mathml') + '</span>');
+function extractMathMl(element) {
+		element.querySelectorAll("span[id^=\"MathJax-Element-\"]").forEach(
+		function (e) {
+			e.outerHTML = "<span>" + e.getAttribute("data-mathml") + "</span>";
+		}
+	);
+}
+
+// tested
+function extractCanvasToImg(element) {
+    element.querySelectorAll("canvas").forEach(
+		function (e) {
+			try {
+				e.outerHTML = (
+					"<img src=\""
+					+ e.toDataURL("image/jpeg")
+					+ "\" alt=\"\"></img>"
+				);
+			} catch (error) {
+				console.log(error)
+			}
     });
 }
 
 // tested
-function extractCanvasToImg($htmlObject) {
-    $htmlObject.find('canvas').each(function (index, elem) {
-        try {
-            let imgUrl = docEl.toDataURL('image/jpeg');
-            $(elem).replaceWith('<img src="' + imgUrl + '" alt=""></img>');
-        } catch (e) {
-            console.log(e)
-        }
-    });
-}
+function extractSvgToImg(element) {
+    const serializer = new XMLSerializer();
 
-// tested
-function extractSvgToImg($htmlObject) {
-    let serializer = new XMLSerializer();
-    $htmlObject.find('svg').each(function (index, elem) {
+    element.querySelectorAll("svg").forEach(function (elem) {
         // add width & height because the result image was too big
-        let bbox = elem.getBoundingClientRect()
-        let newWidth = bbox.width
-        let newHeight = bbox.height
-        let svgXml = serializer.serializeToString(elem);
-        let imgSrc = 'data:image/svg+xml;base64,' + window.btoa(svgXml);
-        $(elem).replaceWith('<img src="' + imgSrc + '" width="'+newWidth+'" height="'+newHeight+'">' + '</img>');
+        const bbox = elem.getBoundingClientRect();
+        elem.outerHTML = (
+			"<img src=\"data:image/svg+xml;base64,"
+			+ window.btoa(serializer.serializeToString(elem))
+			+ "\" width=\"" + bbox.width
+			+ "\" height=\"" + bbox.height
+			+ "\">"	+ "</img>"
+		);
     });
 }
 
@@ -142,18 +151,10 @@ function extractIFrames() {
     }
 }
 
-function preProcess($htmlObject) {
-    // TODO
-    // $htmlObject.find('script, style, noscript, iframe').remove();
-    // $('body').find('script, style, noscript, iframe').remove()
-    // $('body').find('script, style, noscript, iframe').contents().remove()
-    // $('body').find('iframe').remove()
-    // $('body').find('*:empty').not('img').not('br').not('hr').remove();
-    // formatPreCodeElements($('body'));
-
-    extractMathMl($htmlObject);
-    extractCanvasToImg($htmlObject);
-    extractSvgToImg($htmlObject);
+function preProcess(element) {
+    extractMathMl(element);
+    extractCanvasToImg(element);
+    extractSvgToImg(element);
 }
 
 function parseHTML(rawContentString) {
@@ -267,7 +268,7 @@ function parseHTML(rawContentString) {
 function getContent(htmlContent) {
     try {
         // TODO - move; called multiple times on selection
-        preProcess($('body'))
+        preProcess(document.querySelector("body"));
         let tmp = document.createElement('div');
         tmp.appendChild(htmlContent.cloneNode(true));
         let tmpHtml = '<div>' + tmp.innerHTML + '</div>';
@@ -295,24 +296,36 @@ function getSelectedNodes() {
 
 /////
 
+function isVisible(element) {
+	return (
+		element.style.display !== "none"//probably redundant
+		|| (
+			element.offsetWidth <= 0
+			&& element.offsetHeight <= 0
+		)
+	);
+}
+
 function extractCss(includeStyle, appliedStyles) {
     if (includeStyle) {
-        $('body').find('*').each((i, pre) => {
-            let $pre = $(pre);
+        querySelectorAll("body *").forEach((pre, i) => {
+            if (
+				allowedTags.indexOf(pre.tagName.toLowerCase()) < 0
+				|| mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1
+			) {
+				return;
+			}
 
-            if (allowedTags.indexOf(pre.tagName.toLowerCase()) < 0) return;
-            if (mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1) return;
-
-            if (!$pre.is(':visible')) {
-                $pre.replaceWith('');
+            if (!isVisible(pre)) {
+                pre.outerHTML = "";
             } else {
-                if (pre.tagName.toLowerCase() === 'svg') return;
+                if (pre.tagName.toLowerCase() === "svg") return;
 
-                let classNames = pre.getAttribute('class');
+                let classNames = pre.getAttribute("class");
                 if (!classNames) {
-                    classNames = pre.getAttribute('id');
+                    classNames = pre.getAttribute("id");
                     if (!classNames) {
-                        classNames = pre.tagName + '-' + generateRandomNumber();
+                        classNames = pre.tagName + "-" + generateRandomNumber();
                     }
                 }
                 let tmpName = cssClassesToTmpIds[classNames];
@@ -326,7 +339,7 @@ function extractCss(includeStyle, appliedStyles) {
                     tmpNewCss = {};
 
                     for (let cssTagName of supportedCss) {
-                        let cssValue = $pre.css(cssTagName);
+                        const cssValue = $pre.css(cssTagName);
                         if (cssValue && cssValue.length > 0) {
                             tmpNewCss[cssTagName] = cssValue;
                         }
