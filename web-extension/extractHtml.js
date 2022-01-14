@@ -67,6 +67,7 @@ var supportedCss = [
     'padding-right',
     'padding-left',
     'text-align',
+	'white-space',
     'display'
 ];
 //////
