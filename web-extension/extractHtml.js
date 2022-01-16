@@ -357,8 +357,8 @@ function extractCss(includeStyle, appliedStyles) {
             } else {
                 if (pre.tagName.toLowerCase() === 'svg') return;
 
-                let classNames = pre.getAttribute('class');
-                if (!classNames) {
+                let classNames = pre.tagName + "." + pre.getAttribute('class');
+                if (classNames.slice(-1) === ".") {
                     classNames = pre.getAttribute('id');
                     if (!classNames) {
                         classNames = pre.tagName + '-' + generateRandomNumber();
