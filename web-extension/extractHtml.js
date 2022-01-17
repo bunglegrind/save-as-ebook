@@ -357,7 +357,12 @@ function extractCss(includeStyle, appliedStyles) {
             } else {
                 if (pre.tagName.toLowerCase() === 'svg') return;
 
-                let classNames = pre.tagName + "." + pre.getAttribute('class');
+                let classNames = (
+					pre.parentElement.parentElement.tagName
+					+ "." + pre.parentElement.tagName
+					+ "." + pre.tagName
+					+ "." + pre.getAttribute('class')
+				);
                 if (classNames.slice(-1) === ".") {
                     classNames = pre.getAttribute('id');
                     if (!classNames) {
