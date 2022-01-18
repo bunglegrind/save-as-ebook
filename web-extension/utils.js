@@ -100,10 +100,10 @@ function setIsBusy(isBusy) {
 
 /////
 function getBaseUrl() {
-    const base = document.querySelector("base");
-    if (base) {
-        return base.getAttribute("href");
-    }
+	const base = document.querySelector("base");
+	if (base) {
+		return base.getAttribute("href");
+	}
     let url = window.location.href;
     if (url.indexOf('?') > 0) {
         url = window.location.href.split('?')[0];
