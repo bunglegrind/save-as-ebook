@@ -65,7 +65,41 @@ var supportedCss = [
     "padding-bottom",
     "padding-left",
     "text-align",
+	"white-space",
     "display"
+    'background-color',
+    'border-top-width',
+    'border-top-style',
+    'border-top-color',
+    'border-bottom-width',
+    'border-bottom-style',
+    'border-bottom-color',
+    'border-right-width',
+    'border-right-style',
+    'border-right-color',
+    'border-left-width',
+    'border-left-style',
+    'border-left-color',
+    'border-collapse',
+    'color',
+    'font-style',
+    'font-variant',
+    'font-weight',
+    'font-size',
+    'font-family',
+    'line-height',
+    'list-style',
+    'margin-top',
+    'margin-bottom',
+    'margin-right',
+    'margin-left',
+    'padding-top',
+    'padding-bottom',
+    'padding-right',
+    'padding-left',
+    'text-align',
+	'white-space',
+    'display'
 ];
 //////
 
@@ -366,53 +400,53 @@ function extractCss(includeStyle, appliedStyles) {
             } else {
                 if (pre.tagName.toLowerCase() === "svg") return;
 
-                let classNames = pre.getAttribute("class");
-                if (!classNames) {
-                    classNames = pre.getAttribute("id");
-                    if (!classNames) {
-                        classNames = pre.tagName + "-" + generateRandomNumber();
-                    }
-                }
-                let tmpName = cssClassesToTmpIds[classNames];
-                let tmpNewCss = tmpIdsToNewCss[tmpName];
-                if (!tmpName) {
-                    // TODO - collision  between class names when multiple pages
-                    tmpName = generateRandomTag(2) + i;
-                    cssClassesToTmpIds[classNames] = tmpName;
-                }
-                if (!tmpNewCss) {
-                    tmpNewCss = {};
-                    const styles = window.getComputedStyle(pre);
+                const elementId = pre.tagName + "-" + generateRandomNumber(true);
+                let tmpName = generateRandomTag(2) + i;
+				cssClassesToTmpIds[elementId] = tmpName;
+				const  tmpNewCss = {};
+				const styles = window.getComputedStyle(pre);
 
-                    for (let cssTagName of supportedCss) {
-                        const cssValue = styles.getPropertyValue(cssTagName);
-                        if (cssValue.length > 0) {
-                            tmpNewCss[cssTagName] = cssValue;
-                        }
-                    }
+				for (let cssTagName of supportedCss) {
+					const cssValue = styles[cssTagName];
+					if (cssValue && cssValue.length > 0) {
+						if (cssTagName === "font-size") {
+							const parentFontSize = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("font-size"));
+							if (parentFontSize > 0) {
+								cssValue = (parseInt(cssValue)/parentFontSize).toFixed(1) + "em";
+							}
+						}
+						if (cssTagName === "line-height") {
+							const fontSize = styles["font-size"];
+							const numCssValue = parseInt(cssValue);
+							if (numCssValue > 0) {
+								cssValue = (numCssValue / fontSize).toFixed(1);
+							}
+						}
+						tmpNewCss[cssTagName] = cssValue;
+					}
+				}
 
-                    // Reuse CSS - if the same css code was generated for another element, reuse it's class name
+			// Reuse CSS - if the same css code was generated for another element, reuse it's class name
 
-                    const tcss = JSON.stringify(tmpNewCss);
-                    let found = false;
+				const tcss = JSON.stringify(tmpNewCss);
+				let found = false;
 
-                    if (Object.keys(tmpIdsToNewCssSTRING).length === 0) {
-                        tmpIdsToNewCssSTRING[tmpName] = tcss;
-                        tmpIdsToNewCss[tmpName] = tmpNewCss;
-                    } else {
-                        for (const key in tmpIdsToNewCssSTRING) {
-                            if (tmpIdsToNewCssSTRING[key] === tcss) {
-                                tmpName = key;
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            tmpIdsToNewCssSTRING[tmpName] = tcss;
-                            tmpIdsToNewCss[tmpName] = tmpNewCss;
-                        }
-                    }
-                }
+				if (Object.keys(tmpIdsToNewCssSTRING).length === 0) {
+					tmpIdsToNewCssSTRING[tmpName] = tcss;
+					tmpIdsToNewCss[tmpName] = tmpNewCss;
+				} else {
+					for (const key in tmpIdsToNewCssSTRING) {
+						if (tmpIdsToNewCssSTRING[key] === tcss) {
+							tmpName = key;
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						tmpIdsToNewCssSTRING[tmpName] = tcss;
+						tmpIdsToNewCss[tmpName] = tmpNewCss;
+					}
+				}
                 pre.setAttribute("data-class", tmpName);
             }
         });
