@@ -485,7 +485,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             result = {
                 url: getPageUrl(tmpTitle),
                 title: tmpTitle,
-                baseUrl: getCurrentUrl(),
                 styleFileContent: styleFile,
                 styleFileName: "style" + generateRandomNumber() + ".css",
                 images: extractedImages,
