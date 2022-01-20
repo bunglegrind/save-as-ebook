@@ -1,6 +1,6 @@
 node_modules/
 tests/pages/
 .DS_Store
-*~
 *.swp
 *.swo
+*~
