@@ -59,8 +59,10 @@ var supportedCss = [
     "line-height",
     "list-style",
     "padding-top",
+    "margin-top",
+    "margin-bottom",
+    "margin-left",
     "padding-bottom",
-    "padding-right",
     "padding-left",
     "text-align",
     "display"
