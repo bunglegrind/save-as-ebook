@@ -35,7 +35,6 @@ var tmpIdsToNewCss = {};
 var tmpIdsToNewCssSTRING = {};
 
 // src: https://idpf.github.io/a11y-guidelines/content/style/reference.html
-<<<<<<< HEAD
 var supportedCss = [
     "background-color",
     "border-top-width",
