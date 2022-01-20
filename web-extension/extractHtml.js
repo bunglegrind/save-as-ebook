@@ -357,70 +357,52 @@ function extractCss(includeStyle, appliedStyles) {
             } else {
                 if (pre.tagName.toLowerCase() === 'svg') return;
 
-                let classNames = (
-					pre.parentElement.parentElement.tagName
-					+ "." + pre.parentElement.tagName
-					+ "." + pre.tagName
-					+ "." + pre.getAttribute('class')
-				);
-                if (classNames.slice(-1) === ".") {
-                    classNames = pre.getAttribute('id');
-                    if (!classNames) {
-                        classNames = pre.tagName + '-' + generateRandomNumber();
-                    }
-                }
-                let tmpName = cssClassesToTmpIds[classNames];
-                let tmpNewCss = tmpIdsToNewCss[tmpName];
-                if (!tmpName) {
-                    // TODO - collision  between class names when multiple pages
-                    tmpName = generateRandomTag(2) + i
-                    cssClassesToTmpIds[classNames] = tmpName;
-                }
-                if (!tmpNewCss) {
-                    tmpNewCss = {};
+                const elementId = pre.tagName + "-" + generateRandomNumber(true);
+                let tmpName = generateRandomTag(2) + i;
+				cssClassesToTmpIds[elementId] = tmpName;
+				const  tmpNewCss = {};
 
-                    for (let cssTagName of supportedCss) {
-                        let cssValue = $pre.css(cssTagName);
-                        if (cssValue && cssValue.length > 0) {
-							if (cssTagName === "font-size") {
-                                const parentFontSize = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("font-size"));
-                                if (parentFontSize > 0) {
-                                    cssValue = (parseInt(cssValue)/parentFontSize).toFixed(1) + "em";
-                                }
-                            }
-							if (cssTagName === "line-height") {
-                                const fontSize = parseInt($pre.css("font-size"));
-								const numCssValue = parseInt(cssValue);
-								if (numCssValue > 0) {
-									cssValue = (numCssValue / fontSize).toFixed(1);
-								}
-                            }
-							tmpNewCss[cssTagName] = cssValue;
-                        }
-                    }
+				for (let cssTagName of supportedCss) {
+					let cssValue = $pre.css(cssTagName);
+					if (cssValue && cssValue.length > 0) {
+						if (cssTagName === "font-size") {
+							const parentFontSize = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("font-size"));
+							if (parentFontSize > 0) {
+								cssValue = (parseInt(cssValue)/parentFontSize).toFixed(1) + "em";
+							}
+						}
+						if (cssTagName === "line-height") {
+							const fontSize = parseInt($pre.css("font-size"));
+							const numCssValue = parseInt(cssValue);
+							if (numCssValue > 0) {
+								cssValue = (numCssValue / fontSize).toFixed(1);
+							}
+						}
+						tmpNewCss[cssTagName] = cssValue;
+					}
+				}
 
-                    // Reuse CSS - if the same css code was generated for another element, reuse it's class name
+			// Reuse CSS - if the same css code was generated for another element, reuse it's class name
 
-                    let tcss = JSON.stringify(tmpNewCss)
-                    let found = false
+				let tcss = JSON.stringify(tmpNewCss)
+				let found = false
 
-                    if (Object.keys(tmpIdsToNewCssSTRING).length === 0) {
-                        tmpIdsToNewCssSTRING[tmpName] = tcss;
-                        tmpIdsToNewCss[tmpName] = tmpNewCss;
-                    } else {
-                        for (const key in tmpIdsToNewCssSTRING) {
-                            if (tmpIdsToNewCssSTRING[key] === tcss) {
-                                tmpName = key
-                                found = true
-                                break
-                            }
-                        }
-                        if (!found) {
-                            tmpIdsToNewCssSTRING[tmpName] = tcss;
-                            tmpIdsToNewCss[tmpName] = tmpNewCss;
-                        }
-                    }
-                }
+				if (Object.keys(tmpIdsToNewCssSTRING).length === 0) {
+					tmpIdsToNewCssSTRING[tmpName] = tcss;
+					tmpIdsToNewCss[tmpName] = tmpNewCss;
+				} else {
+					for (const key in tmpIdsToNewCssSTRING) {
+						if (tmpIdsToNewCssSTRING[key] === tcss) {
+							tmpName = key
+							found = true
+							break
+						}
+					}
+					if (!found) {
+						tmpIdsToNewCssSTRING[tmpName] = tcss;
+						tmpIdsToNewCss[tmpName] = tmpNewCss;
+					}
+				}
                 pre.setAttribute('data-class', tmpName);
             }
         });
