@@ -47,7 +47,6 @@ function savePage() {//TODO: action and tabId may be a closure for the following
         ]),
         prepareStyles,
         startJob,
-	tap(console.log),
         generateOutcome
     ])(function (value, reason) {
         if (value === undefined) {
