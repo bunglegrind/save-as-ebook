@@ -20,9 +20,9 @@ function executeCommand(command) {
             (tab) => chrome.tabs.sendMessage(
                 tab[0].id,
                 {
-                    'alert': (
-                        'Work in progress! Please wait until the current ' +
-                        'eBook is generated!'
+                    "alert": (
+                        "Work in progress! Please wait until the current " +
+                        "eBook is generated!"
                     )
                 },
                 (r) => console.log(r)
@@ -32,15 +32,15 @@ function executeCommand(command) {
 
     core.setWarn();
 
-    if (command.type === 'save-page') {
+    if (command.type === "save-page") {
         core.savePage();
-        // dispatch('extract-page', false);
-    } else if (command.type === 'save-selection') {
-        dispatch('extract-selection', false);
-    } else if (command.type === 'add-page') {
-        dispatch('extract-page', true);
-    } else if (command.type === 'add-selection') {
-        dispatch('extract-selection', true);
+        // dispatch("extract-page", false);
+    } else if (command.type === "save-selection") {
+        dispatch("extract-selection", false);
+    } else if (command.type === "add-page") {
+        dispatch("extract-page", true);
+    } else if (command.type === "add-selection") {
+        dispatch("extract-selection", true);
     }
 
 }
@@ -48,7 +48,7 @@ function executeCommand(command) {
 function dispatch(action, insertInBook) {
     //WARNING: when saving page, the book buffer is reset
     if (!insertInBook) {
-        _execRequest({type: 'clear book'});
+        _execRequest({type: "clear book"});
     }
 
     chrome.tabs.query({
@@ -68,7 +68,7 @@ function dispatch(action, insertInBook) {
                             insertInBook,
                             isIncludeStyle,
                             tmpAppliedStyles,
-                            () => alert('done')
+                            () => alert("done")
                         )
                     }
                 )
@@ -88,12 +88,12 @@ function prepareStyles(tab, includeStyle, callback) {
             const styles = data.styles;
             const currentUrl = tab[0].url.replace(
                 /(http[s]?:\/\/|www\.)/i,
-                ''
+                ""
             ).toLowerCase();
 
             //We can write also as filter + map
             const allMatchingStyles = styles.reduce(function (acc, style, i) {
-                const styleUrlRegex = new RegExp(style.url, 'i');
+                const styleUrlRegex = new RegExp(style.url, "i");
 
                 if (styleUrlRegex && styleUrlRegex.test(currentUrl)) {
                     return acc.concat({
@@ -127,28 +127,28 @@ function prepareStyles(tab, includeStyle, callback) {
 function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles) {
     chrome.tabs.sendMessage(tab[0].id, {
         type: action,
-        includeStyle: includeStyle,
-        appliedStyles: appliedStyles
+        includeStyle,
+        appliedStyles
     }, (response) => {
         if (!response) {
             core.removeWarn();
-            return chrome.tabs.sendMessage(tab[0].id, {'alert': 'Save as eBook does not work on this web site!'}, () => {
+            return chrome.tabs.sendMessage(tab[0].id, {"alert": "Save as eBook does not work on this web site!"}, () => {
             });
         }
 
-        if (response.content.trim() === '') {
+        if (response.content.trim() === "") {
             core.removeWarn();
             if (justAddToBuffer) {
-                chrome.tabs.sendMessage(tab[0].id, {'alert': 'Cannot add an empty selection as chapter!'}, () => {
+                chrome.tabs.sendMessage(tab[0].id, {"alert": "Cannot add an empty selection as chapter!"}, () => {
                 });
             } else {
-                chrome.tabs.sendMessage(tab[0].id, {'alert': 'Cannot generate the eBook from an empty selection!'}, () => {
+                chrome.tabs.sendMessage(tab[0].id, {"alert": "Cannot generate the eBook from an empty selection!"}, () => {
                 });
             }
             return;
         }
         if (!justAddToBuffer) {
-            chrome.tabs.sendMessage(tab[0].id, {'shortcut': 'build-ebook', response: [response]});
+            chrome.tabs.sendMessage(tab[0].id, {"shortcut": "build-ebook", response: [response]});
         } else {
             core.getBook(function (data) {
                 data.allPages.push(response);
@@ -156,9 +156,9 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles) 
                     core.removeWarn();
                     chrome.tabs.sendMessage(
                         tab[0].id,
-                        {'alert': 'Page or selection added as chapter!'}
+                        {"alert": "Page or selection added as chapter!"}
                     );
-                }, {'allPages': data.allPages});
+                }, {"allPages": data.allPages});
             })
         }
     });
@@ -175,47 +175,47 @@ function _execRequest(request, sender, sendResponse) {
     }
 
 
-    if (request.type === 'get') {
+    if (request.type === "get") {
         core.getBook(sendResponse);
     }
-    if (request.type === 'set') {
+    if (request.type === "set") {
         core.setBook(request);
     }
-    if (request.type === 'clear book') {
+    if (request.type === "clear book") {
         core.clearBook(sendResponse);
     }
-    if (request.type === 'get title') {
+    if (request.type === "get title") {
         core.getTitle(sendResponse);
     }
-    if (request.type === 'set title') {
+    if (request.type === "set title") {
         core.setTitle(sendResponse, request);
     }
     if (request.type === "get styles") {
         core.getStyles(sendResponse);
     }
-    if (request.type === 'set styles') {
+    if (request.type === "set styles") {
         core.setStyles(sendResponse, request);
     }
-    if (request.type === 'get current style') {
+    if (request.type === "get current style") {
         core.getCurrentStyle(sendResponse);
     }
-    if (request.type === 'set current style') {
+    if (request.type === "set current style") {
         core.setCurrentStyle(sendResponse, request);
     }
-    if (request.type === 'get include style') {
+    if (request.type === "get include style") {
         core.getIncludeStyle(sendResponse);
     }
-    if (request.type === 'set include style') {
+    if (request.type === "set include style") {
         core.setIncludeStyle(sendResponse, request);
     }
-    if (request.type === 'is busy?') {
+    if (request.type === "is busy?") {
         sendResponse({isBusy: core.isBusy()});
     }
-    if (request.type === 'save-page' || request.type === 'save-selection' ||
-        request.type === 'add-page' || request.type === 'add-selection') {
+    if (request.type === "save-page" || request.type === "save-selection" ||
+        request.type === "add-page" || request.type === "add-selection") {
         executeCommand({type: request.type});
     }
-    if (request.type === 'done') {
+    if (request.type === "done") {
         core.removeWarn();
     }
     return true;

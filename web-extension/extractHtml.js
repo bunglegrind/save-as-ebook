@@ -1,4 +1,3 @@
-
 // Used to replace <img> src links that don't have a file extension
 // If the image src doesn't have a file type:
 // 1. Create a dummy link
@@ -70,10 +69,7 @@ var supportedCss = [
 ];
 //////
 
-function getImageSrc(srcTxt) {
-    if (!srcTxt) {
-        return "";
-    }
+function getImageSrc(srcTxt = "") {
     srcTxt = srcTxt.trim();
     if (srcTxt === "") {
         return "";
@@ -84,14 +80,10 @@ function getImageSrc(srcTxt) {
 
     // TODO - convert <imgs> with svg sources to jpeg OR add support for svg
 
-    let fileExtension = getFileExtension(srcTxt);
-    if (fileExtension === "") {
-       fileExtension = "TODO-EXTRACT"
-    }
-    let newImgFileName = "img-" + generateRandomNumber(true) + "." + fileExtension;
+    const fileExtension = getFileExtension(srcTxt) || "TODO-EXTRACT";
+    const newImgFileName = `img-${generateRandomNumber(true)}.${fileExtension}`;
 
-    let isB64Img = isBase64Img(srcTxt);
-    if (isB64Img) {
+    if (isBase64Img(srcTxt)) {
         extractedImages.push({
             filename: newImgFileName, // TODO name
             data: getBase64ImgData(srcTxt)
@@ -110,7 +102,6 @@ function getImageSrc(srcTxt) {
 function extractMathMl(element) {
 		element.querySelectorAll("span[id^=\"MathJax-Element-\"]").forEach(
 		function (e) {
-            console.log("hello, world");
 			e.outerHTML = "<span>" + e.getAttribute("data-mathml") + "</span>";
 		}
 	);
@@ -127,6 +118,7 @@ function extractCanvasToImg(element) {
 					+ "\" alt=\"\"></img>"
 				);
 			} catch (error) {
+				console.log(element);
 				console.log(error)
 			}
     });
@@ -178,7 +170,7 @@ function extractIFrames(iframes, prefix = "") {
         const div = document.createElement("div");
         div.id = prefix + "save-as-ebook-iframe-" + index;
         if (!iframe.contentDocument || !iframe.contentDocument.body) {
-			console.log("CORS not enabled or empty iframe. Discarding " + div.id);
+			console.log(`CORS not enabled or empty iframe. Discarding ${div.id}`);
             return div;
         }
         const bbox = iframe.getBoundingClientRect();
@@ -230,10 +222,10 @@ function parseHTML(rawContentString) {
                         } else if (attrs[i].name === "data-class") {
                             tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
                         } else if (attrs[i].name === "width") {
-                            // used when converting svg to img - the result image was too big
+			// used when converting svg to img - the result image was too big
                             tmpAttrsTxt += " width=\"" + attrs[i].value + "\"";
                         } else if (attrs[i].name === "height") {
-                            // used when converting svg to img - the result image was too big
+			// used when converting svg to img - the result image was too big
                             tmpAttrsTxt += " height=\"" + attrs[i].value + "\"";
                         }
                     }
@@ -241,7 +233,11 @@ function parseHTML(rawContentString) {
                         // ignore imgs without source
                         lastFragment = "";
                     } else {
-                        lastFragment = tmpAttrsTxt.length === 0 ? "<img></img>" : "<img" + tmpAttrsTxt + " alt=\"\"></img>";
+                        lastFragment = (
+							tmpAttrsTxt.length === 0
+							? "<img></img>"
+							: "<img" + tmpAttrsTxt + " alt=\"\"></img>"
+						);
                     }
                 } else if (tag === "a") {
                     let tmpAttrsTxt = "";
@@ -377,7 +373,7 @@ function extractCss(includeStyle, appliedStyles) {
 					let cssValue = styles[cssTagName];
 					if (cssValue && cssValue.length > 0) {
 						if (cssTagName === "font-size") {
-							const parentFontSize = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("font-size"));
+							const parentFontSize = parseInt(getComputedStyle(pre.parentElement)["font-size"]);
 							if (parentFontSize > 0) {
 								cssValue = (parseInt(cssValue)/parentFontSize).toFixed(1) + "em";
 							}
@@ -481,8 +477,7 @@ function promiseAddZip(url, filename) {
 }
 
 chrome.runtime.onMessage.addListener(function ({type, includeStyle, appliedStyles}, sender, sendResponse) {
-    let imgsPromises = [];
-    let result = {};
+    const imgsPromises = [];
     let pageSrc = "";
     let tmpContent = "";
     let styleFile = null;
@@ -509,7 +504,7 @@ chrome.runtime.onMessage.addListener(function ({type, includeStyle, appliedStyle
 
     Promise.all(imgsPromises).then(function () {
             const tmpTitle = getPageTitle(document.title);
-            result = {
+            const result = {
                 url: getPageUrl(tmpTitle),
                 title: tmpTitle,
                 styleFileContent: styleFile,
