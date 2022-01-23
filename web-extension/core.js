@@ -26,12 +26,29 @@ const setBook = setStorage("allPages");
 const setTitle = setStorage("title");
 const setStyles = setStorage("styles");
 
-
 const clearBook = parseq.parallel([
     removeFromStorage("allPages"),
     removeFromStorage("title")
 ]);
 
+function tap(f) {
+	return function (v) {
+		f(v);
+		return v;
+	}
+}
+
+function requestorize(unary) {
+	return function (callback, value) {
+		try {
+			return callback(unary(value));
+		} catch (e) {
+			callback (undefined, e);
+		}
+	}
+}
+
+const printValue = requestorize(tap(console.log));
 
 function savePage() {//TODO: action and tabId may be a closure for the following requestors
 
@@ -115,14 +132,14 @@ function savePage() {//TODO: action and tabId may be a closure for the following
         const includeStyle = value[1];
         const appliedStyles = value.appliedStyles;
         const justAddToBuffer = false;
-        const action = "extract-page";
+        const type = "extract-page";
 
         return sendToTab(
             callback,
             {
-                type: action,
-                includeStyle: includeStyle,
-                appliedStyles: appliedStyles,
+                type,
+                 includeStyle,
+                 appliedStyles
             });
 
     }

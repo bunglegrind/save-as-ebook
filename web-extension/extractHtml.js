@@ -374,7 +374,7 @@ function extractCss(includeStyle, appliedStyles) {
 				const styles = window.getComputedStyle(pre);
 
 				for (let cssTagName of supportedCss) {
-					const cssValue = styles[cssTagName];
+					let cssValue = styles[cssTagName];
 					if (cssValue && cssValue.length > 0) {
 						if (cssTagName === "font-size") {
 							const parentFontSize = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("font-size"));
@@ -480,7 +480,7 @@ function promiseAddZip(url, filename) {
     return promise;
 }
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener(function ({type, includeStyle, appliedStyles}, sender, sendResponse) {
     let imgsPromises = [];
     let result = {};
     let pageSrc = "";
@@ -489,12 +489,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     extractIFrames(Array.from(document.querySelectorAll("iframe")));
 
-    if (request.type === "extract-page") {
-        styleFile = extractCss(request.includeStyle, request.appliedStyles);
+    if (type === "extract-page") {
+        styleFile = extractCss(includeStyle, appliedStyles);
         pageSrc = document.getElementsByTagName("body")[0];
         tmpContent = getContent(pageSrc);
-    } else if (request.type === "extract-selection") {
-        styleFile = extractCss(request.includeStyle, request.appliedStyles);
+    } else if (type === "extract-selection") {
+        styleFile = extractCss(includeStyle, appliedStyles);
         pageSrc = getSelectedNodes();
         pageSrc.forEach(function (page) {
             tmpContent += getContent(page);
