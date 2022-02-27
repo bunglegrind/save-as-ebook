@@ -4,20 +4,20 @@
 // 1. Create a dummy link
 // 2. Detect image type from the binary data & create new links
 // 3. Replace all the dummy links in tmpGlobalContent with the new links
-var tmpGlobalContent = null
+var tmpGlobalContent = null;
 
 var allImages = [];
 var extractedImages = [];
-var allowedTags = [
-    'address', 'article', 'aside', 'footer', 'header', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'hgroup', 'nav', 'section', 'dd', 'div', 'dl', 'dt', 'figcaption', 'figure', 'hr', 'li',
-    'main', 'ol', 'p', 'pre', 'ul', 'a', 'abbr', 'b', 'bdi', 'bdo', 'br', 'cite', 'code', 'data',
-    'dfn', 'em', 'i', 'img', 'kbd', 'mark', 'q', 'rb', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 'small', 'span',
-    'strong', 'sub', 'sup', 'time', 'u', 'var', 'wbr', 'del', 'ins', 'caption', 'col', 'colgroup',
-    'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr',
-    'math', 'maction', 'menclose', 'merror', 'mfenced', 'mfrac', 'mglyph', 'mi', 'mlabeledtr', 'mmultiscripts', 'mn', 'mo', 'mover', 'mpadded', 'mphantom', 'mroot',
-    'mrow', 'ms', 'mspace', 'msqrt', 'mstyle', 'msub', 'msup', 'msubsup', 'mtable', 'mtd', 'mtext', 'mtr', 'munder', 'munderover', 'msgroup', 'mlongdiv', 'mscarries',
-    'mscarry', 'mstack', 'semantics'
+const allowedTags = [
+    "address", "article", "aside", "footer", "header", "h1", "h2", "h3", "h4", "h5", "h6",
+    "hgroup", "nav", "section", "dd", "div", "dl", "dt", "figcaption", "figure", "hr", "li",
+    "main", "ol", "p", "pre", "ul", "a", "abbr", "b", "bdi", "bdo", "br", "cite", "code", "data",
+    "dfn", "em", "i", "img", "kbd", "mark", "q", "rb", "rp", "rt", "rtc", "ruby", "s", "samp", "small", "span",
+    "strong", "sub", "sup", "time", "u", "var", "wbr", "del", "ins", "caption", "col", "colgroup",
+    "table", "tbody", "td", "tfoot", "th", "thead", "tr",
+    "math", "maction", "menclose", "merror", "mfenced", "mfrac", "mglyph", "mi", "mlabeledtr", "mmultiscripts", "mn", "mo", "mover", "mpadded", "mphantom", "mroot",
+    "mrow", "ms", "mspace", "msqrt", "mstyle", "msub", "msup", "msubsup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "msgroup", "mlongdiv", "mscarries",
+    "mscarry", "mstack", "semantics"
     // TODO ?
     // ,'form', 'button'
 
@@ -26,9 +26,9 @@ var allowedTags = [
 ];
 // const svgTags = ['svg', 'g', 'path', 'line', 'circle', 'text']
 var mathMLTags = [
-    'math', 'maction', 'menclose', 'merror', 'mfenced', 'mfrac', 'mglyph', 'mi', 'mlabeledtr', 'mmultiscripts', 'mn', 'mo', 'mover', 'mpadded', 'mphantom', 'mroot',
-    'mrow', 'ms', 'mspace', 'msqrt', 'mstyle', 'msub', 'msup', 'msubsup', 'mtable', 'mtd', 'mtext', 'mtr', 'munder', 'munderover', 'msgroup', 'mlongdiv', 'mscarries',
-    'mscarry', 'mstack', 'semantics'
+    "math", "maction", "menclose", "merror", "mfenced", "mfrac", "mglyph", "mi", "mlabeledtr", "mmultiscripts", "mn", "mo", "mover", "mpadded", "mphantom", "mroot",
+    "mrow", "ms", "mspace", "msqrt", "mstyle", "msub", "msup", "msubsup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "msgroup", "mlongdiv", "mscarries",
+    "mscarry", "mstack", "semantics"
 ]
 var cssClassesToTmpIds = {};
 var tmpIdsToNewCss = {};
@@ -36,39 +36,39 @@ var tmpIdsToNewCssSTRING = {};
 
 // src: https://idpf.github.io/a11y-guidelines/content/style/reference.html
 var supportedCss = [
-    'background-color',
-    'border-top-width',
-    'border-top-style',
-    'border-top-color',
-    'border-bottom-width',
-    'border-bottom-style',
-    'border-bottom-color',
-    'border-right-width',
-    'border-right-style',
-    'border-right-color',
-    'border-left-width',
-    'border-left-style',
-    'border-left-color',
-    'border-collapse',
-    'color',
-    'font-style',
-    'font-variant',
-    'font-weight',
-    'font-size',
-    'font-family',
-    'line-height',
-    'list-style',
-    'margin-top',
-    'margin-bottom',
-    'margin-right',
-    'margin-left',
-    'padding-top',
-    'padding-bottom',
-    'padding-right',
-    'padding-left',
-    'text-align',
-	'white-space',
-    'display'
+    "background-color",
+    "border-top-width",
+    "border-top-style",
+    "border-top-color",
+    "border-bottom-width",
+    "border-bottom-style",
+    "border-bottom-color",
+    "border-right-width",
+    "border-right-style",
+    "border-right-color",
+    "border-left-width",
+    "border-left-style",
+    "border-left-color",
+    "border-collapse",
+    "color",
+    "font-style",
+    "font-variant",
+    "font-weight",
+    "font-size",
+    "font-family",
+    "line-height",
+    "list-style",
+    "margin-top",
+    "margin-bottom",
+    "margin-right",
+    "margin-left",
+    "padding-top",
+    "padding-bottom",
+    "padding-right",
+    "padding-left",
+    "text-align",
+	"white-space",
+    "display"
 ];
 //////
 
@@ -77,20 +77,20 @@ function getImageSrc(srcTxt) {
         return '';
     }
     srcTxt = srcTxt.trim();
-    if (srcTxt === '') {
-        return '';
+    if (srcTxt === "") {
+        return "";
     }
 
     // TODO move
-    srcTxt = srcTxt.replace(/&amp;/g, '&')
+    srcTxt = srcTxt.replace(/&amp;/g, "&")
 
     // TODO - convert <imgs> with svg sources to jpeg OR add support for svg
 
     let fileExtension = getFileExtension(srcTxt);
-    if (fileExtension === '') {
+    if (fileExtension === "") {
        fileExtension = "TODO-EXTRACT"
     }
-    let newImgFileName = 'img-' + generateRandomNumber(true) + '.' + fileExtension;
+    let newImgFileName = "img-" + generateRandomNumber(true) + '.' + fileExtension;
 
     let isB64Img = isBase64Img(srcTxt);
     if (isB64Img) {
@@ -105,39 +105,49 @@ function getImageSrc(srcTxt) {
         });
     }
 
-    return '../images/' + newImgFileName;
+    return "../images/" + newImgFileName;
 }
 
 // tested
-function extractMathMl($htmlObject) {
-    $htmlObject.find('span[id^="MathJax-Element-"]').each(function (i, el) {
-        $(el).replaceWith('<span>' + el.getAttribute('data-mathml') + '</span>');
+function extractMathMl(element) {
+		element.querySelectorAll("span[id^=\"MathJax-Element-\"]").forEach(
+		function (e) {
+            console.log("hello, world");
+			e.outerHTML = "<span>" + e.getAttribute("data-mathml") + "</span>";
+		}
+	);
+}
+
+// tested
+function extractCanvasToImg(element) {
+    element.querySelectorAll("canvas").forEach(
+		function (e) {
+			try {
+				e.outerHTML = (
+					"<img src=\""
+					+ e.toDataURL("image/jpeg")
+					+ "\" alt=\"\"></img>"
+				);
+			} catch (error) {
+				console.log(error)
+			}
     });
 }
 
 // tested
-function extractCanvasToImg($htmlObject) {
-    $htmlObject.find('canvas').each(function (index, elem) {
-        try {
-            let imgUrl = docEl.toDataURL('image/jpeg');
-            $(elem).replaceWith('<img src="' + imgUrl + '" alt=""></img>');
-        } catch (e) {
-            console.log(e)
-        }
-    });
-}
+function extractSvgToImg(element) {
+    const serializer = new XMLSerializer();
 
-// tested
-function extractSvgToImg($htmlObject) {
-    let serializer = new XMLSerializer();
-    $htmlObject.find('svg').each(function (index, elem) {
+    element.querySelectorAll("svg").forEach(function (elem) {
         // add width & height because the result image was too big
-        let bbox = elem.getBoundingClientRect()
-        let newWidth = bbox.width
-        let newHeight = bbox.height
-        let svgXml = serializer.serializeToString(elem);
-        let imgSrc = 'data:image/svg+xml;base64,' + window.btoa(svgXml);
-        $(elem).replaceWith('<img src="' + imgSrc + '" width="'+newWidth+'" height="'+newHeight+'">' + '</img>');
+        const bbox = elem.getBoundingClientRect();
+        elem.outerHTML = (
+			"<img src=\"data:image/svg+xml;base64,"
+			+ window.btoa(serializer.serializeToString(elem))
+			+ "\" width=\"" + bbox.width
+			+ "\" height=\"" + bbox.height
+			+ "\">"	+ "</img>"
+		);
     });
 }
 
@@ -191,18 +201,10 @@ function extractIFrames(iframes, prefix = "") {
 	));
 }
 
-function preProcess($htmlObject) {
-    // TODO
-    // $htmlObject.find('script, style, noscript, iframe').remove();
-    // $('body').find('script, style, noscript, iframe').remove()
-    // $('body').find('script, style, noscript, iframe').contents().remove()
-    // $('body').find('iframe').remove()
-    // $('body').find('*:empty').not('img').not('br').not('hr').remove();
-    // formatPreCodeElements($('body'));
-
-    extractMathMl($htmlObject);
-    extractCanvasToImg($htmlObject);
-    extractSvgToImg($htmlObject);
+function preProcess(element) {
+    extractMathMl(element);
+    extractCanvasToImg(element);
+    extractSvgToImg(element);
 }
 
 function parseHTML(rawContentString) {
@@ -220,78 +222,78 @@ function parseHTML(rawContentString) {
                     return;
                 }
 
-                if (tag === 'img') {
+                if (tag === "img") {
                     let tmpAttrsTxt = '';
                     let tmpSrc = ''
                     for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === 'src') {
+                        if (attrs[i].name === "src") {
                             tmpSrc = getImageSrc(attrs[i].value)
-                            tmpAttrsTxt += ' src="' + tmpSrc + '"';
-                        } else if (attrs[i].name === 'data-class') {
-                            tmpAttrsTxt += ' class="' + attrs[i].value + '"';
-                        } else if (attrs[i].name === 'width') {
+                            tmpAttrsTxt += " src=\"" + tmpSrc + "\"";
+                        } else if (attrs[i].name === "data-class") {
+                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
+                        } else if (attrs[i].name === "width") {
                             // used when converting svg to img - the result image was too big
-                            tmpAttrsTxt += ' width="' + attrs[i].value + '"';
-                        } else if (attrs[i].name === 'height') {
+                            tmpAttrsTxt += " width=\"" + attrs[i].value + "\"";
+                        } else if (attrs[i].name === "height") {
                             // used when converting svg to img - the result image was too big
-                            tmpAttrsTxt += ' height="' + attrs[i].value + '"';
+                            tmpAttrsTxt += " height=\"" + attrs[i].value + "\"";
                         }
                     }
-                    if (tmpSrc === '') {
+                    if (tmpSrc === "") {
                         // ignore imgs without source
-                        lastFragment = ''
+                        lastFragment = "";
                     } else {
-                        lastFragment = tmpAttrsTxt.length === 0 ? '<img></img>' : '<img' + tmpAttrsTxt + ' alt=""></img>';
+                        lastFragment = tmpAttrsTxt.length === 0 ? "<img></img>" : "<img" + tmpAttrsTxt + " alt=\"\"></img>";
                     }
-                } else if (tag === 'a') {
-                    let tmpAttrsTxt = '';
+                } else if (tag === "a") {
+                    let tmpAttrsTxt = "";
                     for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === 'href') {
-                            tmpAttrsTxt += ' href="' + getHref(attrs[i].value) + '"';
-                        } else if (attrs[i].name === 'data-class') {
-                            tmpAttrsTxt += ' class="' + attrs[i].value + '"';
+                        if (attrs[i].name === "href") {
+                            tmpAttrsTxt += " href=\"" + getHref(attrs[i].value) + "\"";
+                        } else if (attrs[i].name === "data-class") {
+                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
                         }
                     }
-                    lastFragment = tmpAttrsTxt.length === 0 ? '<a>' : '<a' + tmpAttrsTxt + '>';
-                } else if (tag === 'br' || tag === 'hr') {
-                    let tmpAttrsTxt = '';
+                    lastFragment = tmpAttrsTxt.length === 0 ? "<a>" : "<a" + tmpAttrsTxt + ">";
+                } else if (tag === "br" || tag === "hr") {
+                    let tmpAttrsTxt = "";
                     for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === 'data-class') {
-                            tmpAttrsTxt += ' class="' + attrs[i].value + '"';
+                        if (attrs[i].name === "data-class") {
+                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
                         }
                     }
-                    lastFragment = '<' + tag + tmpAttrsTxt + '></' + tag + '>';
-                } else if (tag === 'math') {
+                    lastFragment = "<" + tag + tmpAttrsTxt + "></" + tag + ">";
+                } else if (tag === "math") {
                     let tmpAttrsTxt = '';
-                    tmpAttrsTxt += ' xmlns="http://www.w3.org/1998/Math/MathML"';
+                    tmpAttrsTxt += " xmlns=\"http://www.w3.org/1998/Math/MathML\"";
                     for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === 'alttext') {
-                            tmpAttrsTxt += ' alttext="' + attrs[i].value + '"';
+                        if (attrs[i].name === "alttext") {
+                            tmpAttrsTxt += " alttext=\"" + attrs[i].value + "\"";
                         }
                     }
-                    lastFragment = '<' + tag + tmpAttrsTxt + '>';
+                    lastFragment = "<" + tag + tmpAttrsTxt + ">";
                 } else {
-                    let tmpAttrsTxt = '';
+                    let tmpAttrsTxt = "";
                     for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === 'data-class') {
-                            tmpAttrsTxt += ' class="' + attrs[i].value + '"';
+                        if (attrs[i].name === "data-class") {
+                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
                         }
                     }
-                    lastFragment = '<' + tag + tmpAttrsTxt + '>';
+                    lastFragment = "<" + tag + tmpAttrsTxt + ">";
                 }
 
                 results += lastFragment;
-                lastFragment = '';
+                lastFragment = "";
             },
             end: function(tag) {
-                if (allowedTags.indexOf(tag) < 0 || tag === 'img' || tag === 'br' || tag === 'hr') {
+                if (allowedTags.indexOf(tag) < 0 || tag === "img" || tag === "br" || tag === "hr") {
                     return;
                 }
 
                 results += "</" + tag + ">";
             },
             chars: function(text) {
-                if (lastTag !== '' && allowedTags.indexOf(lastTag) < 0) {
+                if (lastTag !== "" && allowedTags.indexOf(lastTag) < 0) {
                     return;
                 }
                 results += text;
@@ -302,13 +304,13 @@ function parseHTML(rawContentString) {
         });
 
         // TODO - (re)move
-        results = results.replace(/&nbsp;/gi, '&#160;');
+        results = results.replace(/&nbsp;/gi, "&#160;");
 
         return results;
 
     } catch (e) {
-        console.log('Error:', e);
-        return 'Error: ' + e  //+"  " + force($(rawContentString))
+        console.log("Error:", e);
+        return "Error: " + e  //+"  " + force($(rawContentString))
     }
 
 }
@@ -316,13 +318,13 @@ function parseHTML(rawContentString) {
 function getContent(htmlContent) {
     try {
         // TODO - move; called multiple times on selection
-        preProcess($('body'))
-        let tmp = document.createElement('div');
+        preProcess(document.querySelector("body"));
+        let tmp = document.createElement("div");
         tmp.appendChild(htmlContent.cloneNode(true));
-        let tmpHtml = '<div>' + tmp.innerHTML + '</div>';
+        let tmpHtml = "<div>" + tmp.innerHTML + "</div>";
         return parseHTML(tmpHtml);
     } catch (e) {
-        console.log('Error:', e);
+        console.log("Error:", e);
         return htmlContent;
     }
 }
@@ -344,26 +346,37 @@ function getSelectedNodes() {
 
 /////
 
+function isVisible(elem) {
+	return Boolean(
+        elem.offsetWidth
+        || elem.offsetHeight
+        || elem.getClientRects().length
+    );
+}
+
 function extractCss(includeStyle, appliedStyles) {
     if (includeStyle) {
-        $('body').find('*').each((i, pre) => {
-            let $pre = $(pre);
+        document.querySelectorAll("body *").forEach(function (pre, i) {
+            if (
+				allowedTags.indexOf(pre.tagName.toLowerCase()) < 0
+				|| mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1
+			) {
+				return;
+			}
 
-            if (allowedTags.indexOf(pre.tagName.toLowerCase()) < 0) return;
-            if (mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1) return;
-
-            if (!$pre.is(':visible')) {
-                $pre.replaceWith('');
+            if (!isVisible(pre)) {
+                pre.outerHTML = "";
             } else {
-                if (pre.tagName.toLowerCase() === 'svg') return;
+                if (pre.tagName.toLowerCase() === "svg") return;
 
                 const elementId = pre.tagName + "-" + generateRandomNumber(true);
                 let tmpName = generateRandomTag(2) + i;
 				cssClassesToTmpIds[elementId] = tmpName;
 				const  tmpNewCss = {};
+				const styles = window.getComputedStyle(pre);
 
 				for (let cssTagName of supportedCss) {
-					let cssValue = $pre.css(cssTagName);
+					let cssValue = styles.getPropertyValue(cssTagName);
 					if (cssValue && cssValue.length > 0) {
 						if (cssTagName === "font-size") {
 							const parentFontSize = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("font-size"));
@@ -372,7 +385,7 @@ function extractCss(includeStyle, appliedStyles) {
 							}
 						}
 						if (cssTagName === "line-height") {
-							const fontSize = parseInt($pre.css("font-size"));
+							const fontSize = parseInt(styles.getPropertyValue("font-size"));
 							const numCssValue = parseInt(cssValue);
 							if (numCssValue > 0) {
 								cssValue = (numCssValue / fontSize).toFixed(1);
@@ -409,13 +422,12 @@ function extractCss(includeStyle, appliedStyles) {
         return jsonToCss(tmpIdsToNewCss);
     } else {
         // remove hidden elements when style is not included
-        $('body').find('*').each((i, pre) => {
-            let $pre = $(pre)
-            if (!$pre.is(':visible')) {
-                $pre.replaceWith('')
+        document.querySelectorAll("body *").forEach(function ( pre) {
+            if (!isVisible(pre)) {
+                pre.outerHTML = "";
             }
-        })
-        let mergedCss = '';
+        });
+        let mergedCss = "";
         if (appliedStyles && appliedStyles.length > 0) {
             for (let i = 0; i < appliedStyles.length; i++) {
                 mergedCss += appliedStyles[i].style;
@@ -423,94 +435,96 @@ function extractCss(includeStyle, appliedStyles) {
             return mergedCss;
         }
     }
-    return null
+    return null;
 }
 
 /////
 
-function deferredAddZip(url, filename) {
-    let deferred = $.Deferred();
-    JSZipUtils.getBinaryContent(url, function(err, data) {
-        if (err) {
-            // deferred.reject(err); TODO
-            console.log('Error:', err);
-            deferred.resolve();
-        } else {
-            // TODO - move to utils.js
-            if (filename.endsWith("TODO-EXTRACT")) {
-                let oldFilename = filename
-                let arr = (new Uint8Array(data)).subarray(0, 4);
-                let header = "";
-                for(let i = 0; i < arr.length; i++) {
-                    header += arr[i].toString(16);
+function promiseAddZip(url, filename) {
+    const promise = new Promise(function (resolve, reject) {
+        JSZipUtils.getBinaryContent(url, function(err, data) {
+            if (err) {
+                // deferred.reject(err); TODO
+                console.log("Error:", err);
+                resolve();
+            } else {
+                // TODO - move to utils.js
+                if (filename.endsWith("TODO-EXTRACT")) {
+                    let oldFilename = filename
+                    let arr = (new Uint8Array(data)).subarray(0, 4);
+                    let header = "";
+                    for(let i = 0; i < arr.length; i++) {
+                        header += arr[i].toString(16);
+                    }
+                    if (header.startsWith("89504e47")) {
+                        filename = filename.replace("TODO-EXTRACT", "png")
+                    } else if (header.startsWith("47494638")) {
+                        filename = filename.replace("TODO-EXTRACT", "gif")
+                    } else if (header.startsWith("ffd8ff")) {
+                        filename = filename.replace("TODO-EXTRACT", "jpg")
+                    } else {
+                        // ERROR
+                        console.log("Error! Unable to extract the image type!");
+                        resolve();
+                    }
+                    tmpGlobalContent = tmpGlobalContent.replace(oldFilename, filename);
                 }
-                if (header.startsWith("89504e47")) {
-                    filename = filename.replace("TODO-EXTRACT", "png")
-                } else if (header.startsWith("47494638")) {
-                    filename = filename.replace("TODO-EXTRACT", "gif")
-                } else if (header.startsWith("ffd8ff")) {
-                    filename = filename.replace("TODO-EXTRACT", "jpg")
-                } else {
-                    // ERROR
-                    console.log("Error! Unable to extract the image type!");
-                    deferred.resolve();
-                }
-                tmpGlobalContent = tmpGlobalContent.replace(oldFilename, filename)
+
+                extractedImages.push({
+                    filename: filename,
+                    // TODO - must be JSON serializable
+                    data: base64ArrayBuffer(data)
+                });
+                resolve();
             }
-
-            extractedImages.push({
-                filename: filename,
-                // TODO - must be JSON serializable
-                data: base64ArrayBuffer(data)
-            });
-
-            deferred.resolve();
-        }
+        });
     });
-    return deferred;
+    return promise;
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     let imgsPromises = [];
     let result = {};
-    let pageSrc = '';
-    let tmpContent = '';
+    let pageSrc = "";
+    let tmpContent = "";
     let styleFile = null;
 
     extractIFrames(Array.from(document.querySelectorAll("iframe")));
 
-    if (request.type === 'extract-page') {
-        styleFile = extractCss(request.includeStyle, request.appliedStyles)
-        pageSrc = document.getElementsByTagName('body')[0];
+    if (request.type === "extract-page") {
+        styleFile = extractCss(request.includeStyle, request.appliedStyles);
+        pageSrc = document.getElementsByTagName("body")[0];
         tmpContent = getContent(pageSrc);
-    } else if (request.type === 'extract-selection') {
-        styleFile = extractCss(request.includeStyle, request.appliedStyles)
+    } else if (request.type === "extract-selection") {
+        styleFile = extractCss(request.includeStyle, request.appliedStyles);
         pageSrc = getSelectedNodes();
-        pageSrc.forEach((page) => {
+        pageSrc.forEach(function (page) {
             tmpContent += getContent(page);
         });
     }
 
-    tmpGlobalContent = tmpContent
+    tmpGlobalContent = tmpContent;
 
-    allImages.forEach((tmpImg) => {
-        imgsPromises.push(deferredAddZip(tmpImg.originalUrl, tmpImg.filename));
+    allImages.forEach(function (tmpImg) {
+        imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
     });
 
-    $.when.apply($, imgsPromises).done(() => {
-        let tmpTitle = getPageTitle(document.title);
-        result = {
-            url: getPageUrl(tmpTitle),
-            title: tmpTitle,
-            styleFileContent: styleFile,
-            styleFileName: 'style' + generateRandomNumber() + '.css',
-            images: extractedImages,
-            content: tmpGlobalContent
-        };
-        sendResponse(result);
-    }).fail((e) => {
-        console.log('Error:', e);
-        sendResponse(null)
+    Promise.all(imgsPromises).then(function () {
+            const tmpTitle = getPageTitle(document.title);
+            result = {
+                url: getPageUrl(tmpTitle),
+                title: tmpTitle,
+                baseUrl: getBaseUrl(),
+                styleFileContent: styleFile,
+                styleFileName: "style" + generateRandomNumber() + ".css",
+                images: extractedImages,
+                content: tmpGlobalContent
+            };
+            sendResponse(result);
+        }
+    ).catch(function (e) {
+        console.log("Error:", e);
+        sendResponse(null);
     });
 
     return true;
