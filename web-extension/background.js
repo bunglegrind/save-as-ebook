@@ -42,7 +42,6 @@ function executeCommand(command) {
     } else if (command.type === "add-selection") {
         dispatch("extract-selection", true);
     }
-
 }
 
 function dispatch(action, insertInBook) {
@@ -217,6 +216,26 @@ function _execRequest(request, sender, sendResponse) {
     }
     if (request.type === "done") {
         core.removeWarn();
+    }
+    if (request.type === 'ExportCustomStyles') {
+        chrome.storage.local.get(null, function (data) {
+            chrome.downloads.download({
+                'saveAs': true,
+                'url': URL.createObjectURL(
+                    new Blob([JSON.stringify({styles: data.styles})], {
+                        type: "application/json",
+                    })
+                ),
+                'filename': 'customStyles.json'
+            });
+        });
+
+    }
+    if (request.type === 'ImportCustomStyles') {
+        chrome.storage.local.set(
+			{'styles': request.customStyles.styles},
+			sendResponse
+		);
     }
     return true;
 }

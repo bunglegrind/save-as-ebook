@@ -33,6 +33,7 @@
     "permissions": [
         "contextMenus",
         "activeTab",
+        "downloads",
         "storage",
         "unlimitedStorage",
         "notifications",
