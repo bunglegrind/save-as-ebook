@@ -70,6 +70,8 @@ var supportedCss = [
 	"white-space",
     "display"
 ];
+
+var inheritedCss = [];
 //////
 
 function getImageSrc(srcTxt) {
@@ -375,7 +377,7 @@ function extractCss(includeStyle, appliedStyles) {
 				const  tmpNewCss = {};
 				const styles = window.getComputedStyle(pre);
 
-				for (let cssTagName of supportedCss) {
+				for (let cssTagName of supportedCss.concat(inheritedCss)) {
 					let cssValue = styles.getPropertyValue(cssTagName);
 					if (cssValue && cssValue.length > 0) {
 						if (cssTagName === "font-size") {
@@ -441,45 +443,37 @@ function extractCss(includeStyle, appliedStyles) {
 /////
 
 function promiseAddZip(url, filename) {
-    const promise = new Promise(function (resolve, reject) {
-        JSZipUtils.getBinaryContent(url, function(err, data) {
-            if (err) {
-                // deferred.reject(err); TODO
-                console.log("Error:", err);
-                resolve();
-            } else {
-                // TODO - move to utils.js
-                if (filename.endsWith("TODO-EXTRACT")) {
-                    let oldFilename = filename
-                    let arr = (new Uint8Array(data)).subarray(0, 4);
-                    let header = "";
-                    for(let i = 0; i < arr.length; i++) {
-                        header += arr[i].toString(16);
-                    }
-                    if (header.startsWith("89504e47")) {
-                        filename = filename.replace("TODO-EXTRACT", "png")
-                    } else if (header.startsWith("47494638")) {
-                        filename = filename.replace("TODO-EXTRACT", "gif")
-                    } else if (header.startsWith("ffd8ff")) {
-                        filename = filename.replace("TODO-EXTRACT", "jpg")
-                    } else {
-                        // ERROR
-                        console.log("Error! Unable to extract the image type!");
-                        resolve();
-                    }
-                    tmpGlobalContent = tmpGlobalContent.replace(oldFilename, filename);
-                }
-
-                extractedImages.push({
-                    filename: filename,
-                    // TODO - must be JSON serializable
-                    data: base64ArrayBuffer(data)
-                });
-                resolve();
-            }
-        });
-    });
-    return promise;
+	return fetch(url).then(function (data) {
+		return data.arrayBuffer();
+	}).then(function (data) {
+		// TODO - move to utils.js
+		if (filename.endsWith("TODO-EXTRACT")) {
+			let oldFilename = filename
+			let arr = (new Uint8Array(data)).subarray(0, 4);
+			let header = "";
+			for (let i = 0; i < arr.length; i++) {
+				header += arr[i].toString(16);
+			}
+			if (header.startsWith("89504e47")) {
+				filename = filename.replace("TODO-EXTRACT", "png")
+			} else if (header.startsWith("47494638")) {
+				filename = filename.replace("TODO-EXTRACT", "gif")
+			} else if (header.startsWith("ffd8ff")) {
+				filename = filename.replace("TODO-EXTRACT", "jpg")
+			} else {
+				// ERROR
+				return Promise.reject("Error! Unable to extract the image type!");
+			}
+			tmpGlobalContent = tmpGlobalContent.replace(oldFilename, filename);
+		}
+		console.log("hello, ward!");
+		extractedImages.push({
+			filename: filename,
+			// TODO - must be JSON serializable
+			data: base64ArrayBuffer(data)
+		});
+		return true;
+	});
 }
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
@@ -510,6 +504,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     });
 
     Promise.all(imgsPromises).then(function () {
+		console.log("hello, mard!");
             const tmpTitle = getPageTitle(document.title);
             result = {
                 url: getPageUrl(tmpTitle),
