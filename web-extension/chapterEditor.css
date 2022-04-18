@@ -2,9 +2,7 @@ body.dragging, body.dragging * {
     cursor: move !important;
 }
 .dragged {
-    position: absolute;
     opacity: 0.5;
-    z-index: 2000;
 }
 ul.chapterEditor-chapters-list li.placeholder {
     position: relative;
@@ -171,6 +169,7 @@ ul, ul.chapterEditor-chapters-list {
         height: 30px;
         padding: 4px 0;
         font-size: 14px;
+		cursor: move;
     }
     .chapterEditor-chapter-item > input[type="text"] {
         padding: 3px;
