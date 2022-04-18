@@ -184,7 +184,6 @@ document.getElementById("editStyles").onclick = function () {
         currentWindow: true,
         active: true
     });
-
 }
 
 document.getElementById("editChapters").onclick = function () {
