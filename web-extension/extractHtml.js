@@ -114,7 +114,6 @@ function getImageSrc(srcTxt) {
 function extractMathMl(element) {
 		element.querySelectorAll("span[id^=\"MathJax-Element-\"]").forEach(
 		function (e) {
-            console.log("hello, world");
 			e.outerHTML = "<span>" + e.getAttribute("data-mathml") + "</span>";
 		}
 	);
@@ -462,11 +461,10 @@ function promiseAddZip(url, filename) {
 				filename = filename.replace("TODO-EXTRACT", "jpg")
 			} else {
 				// ERROR
-				return Promise.reject("Error! Unable to extract the image type!");
+				return Promise.reject("Error! Unable to extract the image type! " + filename + " " +  url);
 			}
 			tmpGlobalContent = tmpGlobalContent.replace(oldFilename, filename);
 		}
-		console.log("hello, ward!");
 		extractedImages.push({
 			filename: filename,
 			// TODO - must be JSON serializable
@@ -485,42 +483,41 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     extractIFrames(Array.from(document.querySelectorAll("iframe")));
 
-    if (request.type === "extract-page") {
-        styleFile = extractCss(request.includeStyle, request.appliedStyles);
-        pageSrc = document.getElementsByTagName("body")[0];
-        tmpContent = getContent(pageSrc);
-    } else if (request.type === "extract-selection") {
-        styleFile = extractCss(request.includeStyle, request.appliedStyles);
-        pageSrc = getSelectedNodes();
-        pageSrc.forEach(function (page) {
-            tmpContent += getContent(page);
-        });
-    }
+    setTimeout(function () {
+		styleFile = extractCss(request.includeStyle, request.appliedStyles);
+		if (request.type === "extract-page") {
+			pageSrc = document.getElementsByTagName("body")[0];
+			tmpContent = getContent(pageSrc);
+		} else if (request.type === "extract-selection") {
+			pageSrc = getSelectedNodes();
+			pageSrc.forEach(function (page) {
+				tmpContent += getContent(page);
+			});
+		}
 
-    tmpGlobalContent = tmpContent;
+		tmpGlobalContent = tmpContent;
 
-    allImages.forEach(function (tmpImg) {
-        imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
-    });
+		allImages.forEach(function (tmpImg) {
+			imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
+		});
 
-    Promise.all(imgsPromises).then(function () {
-		console.log("hello, mard!");
-            const tmpTitle = getPageTitle(document.title);
-            result = {
-                url: getPageUrl(tmpTitle),
-                title: tmpTitle,
-                baseUrl: getBaseUrl(),
-                styleFileContent: styleFile,
-                styleFileName: "style" + generateRandomNumber() + ".css",
-                images: extractedImages,
-                content: tmpGlobalContent
-            };
-            sendResponse(result);
-        }
-    ).catch(function (e) {
-        console.log("Error:", e);
-        sendResponse(null);
-    });
-
+		Promise.all(imgsPromises).then(function () {
+				const tmpTitle = getPageTitle(document.title);
+				result = {
+					url: getPageUrl(tmpTitle),
+					title: tmpTitle,
+					baseUrl: getBaseUrl(),
+					styleFileContent: styleFile,
+					styleFileName: "style" + generateRandomNumber() + ".css",
+					images: extractedImages,
+					content: tmpGlobalContent
+				};
+				sendResponse(result);
+			}
+		).catch(function (e) {
+			console.log("Error:", e);
+			sendResponse(null);
+		});
+	}, 3000);
     return true;
 });
