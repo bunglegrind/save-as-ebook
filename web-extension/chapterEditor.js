@@ -68,6 +68,7 @@ function showEditor() {
             var listItem = document.createElement('li');
             listItem.id = 'li' + i;
             listItem.className = 'chapterEditor-chapter-item';
+			listItem.draggable = "true";
 
             var dragHandler = document.createElement('span');
             dragHandler.className = 'chapterEditor-drag-handler';
@@ -96,12 +97,46 @@ function showEditor() {
             listItem.appendChild(dragHandler);
             listItem.appendChild(label);
             listItem.appendChild(buttons);
+			listItem.addEventListener("dragstart", (function (listItem) {
+				return function () {
+					listItem.classList.add("dragged");
+				}
+			}(listItem)));
+			listItem.addEventListener("dragend", (function (listItem) {
+				return function () {
+					listItem.classList.remove("dragged");
+				}
+			}(listItem)));
             list.appendChild(listItem);
         }
+
+		list.addEventListener("dragover", function (e) {
+			e.preventDefault();
+			const dragged = list.querySelector("li.dragged");
+			const afterElement = getDragAfterElement(e.clientY);
+			if (afterElement) {
+				list.insertBefore(dragged, afterElement);
+			} else {
+				list.appendChild(dragged);
+			}
+
+		});
+		function getDragAfterElement(y) {
+			return Array.from(list.querySelectorAll("li:not(.dragged)")).reduce(
+				function (closest, listItem) {
+					const box = listItem.getBoundingClientRect();		
+//I care only of negative offset (I'm above)
+					const offset = y - box.top - box.height / 2;
+					return (
+						offset < 0 && offset > closest.offset
+						? {offset, element: listItem}
+						: closest
+					);
+				},
+				{offset: Number.NEGATIVE_INFINITY, element: undefined}
+			).element;
+		}
         modalList.appendChild(list);
-        $(list).sortable({
-            handle: '.chapterEditor-drag-handler',
-        });
     }
 
     ////////

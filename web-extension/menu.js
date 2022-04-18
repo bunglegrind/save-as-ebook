@@ -141,8 +141,6 @@ document.getElementById("editChapters").onclick = function() {
         active: true
     }, function(tab) {
 
-        chrome.tabs.executeScript(tab[0].id, {file: './libs/jquery.js'});
-        chrome.tabs.executeScript(tab[0].id, {file: './libs/jquery-sortable.js'});
         chrome.tabs.insertCSS(tab[0].id, {file: '/chapterEditor.css'});
 
         chrome.tabs.executeScript(tab[0].id, {
