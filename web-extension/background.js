@@ -445,5 +445,17 @@ function _execRequest(request, sender, sendResponse) {
 			sendResponse
 		);
     }
+    if (request.type === 'downloadEBook') {
+		chrome.downloads.download({
+			'saveAs': true,
+			'url': URL.createObjectURL(
+				request.content, {
+					type: "application/epub+zip",
+				}),
+			//TODO listent downloads.onChanged
+			//https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download
+			'filename': request.filename 
+		});
+    }
     return true;
 }

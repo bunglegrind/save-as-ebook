@@ -193,11 +193,14 @@ function _buildEbook(allPages, fromMenu=false) {
         })
         .then(function(content) {
             console.log("done !");
-            saveAs(content, ebookFileName);
-
-            chrome.runtime.sendMessage({
+            //saveAs(content, ebookFileName);
+			console.log(ebookFileName);
+			chrome.runtime.sendMessage({
+				type: 'downloadEBook',
+				content,
+				filename: ebookFileName
+			}, () => chrome.runtime.sendMessage({
                 type: "done"
-            }, (response) => {});
-        });
-
+            }, (response) => {}))
+		});
 }
