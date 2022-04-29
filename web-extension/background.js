@@ -423,7 +423,7 @@ function _execRequest(request, sender, sendResponse) {
         executeCommand({type: request.type})
     }
     if (request.type === 'done') {
-        resetBusy()
+        resetBusy();
     }
     if (request.type === 'ExportCustomStyles') {
         chrome.storage.local.get(null, function (data) {
@@ -446,7 +446,8 @@ function _execRequest(request, sender, sendResponse) {
 		);
     }
     if (request.type === 'downloadEBook') {
-		chrome.downloads.download({
+		chrome.downloads.download(
+			{
 			'saveAs': true,
 			'url': URL.createObjectURL(
 				request.content, {
@@ -454,8 +455,14 @@ function _execRequest(request, sender, sendResponse) {
 				}),
 			//TODO listent downloads.onChanged
 			//https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download
-			'filename': request.filename 
-		});
+			'filename': request.filename.replace(/[<>"*|:]/g, "")
+
+			},
+			function (downloadId) {
+				console.log("done " + downloadId);
+				resetBusy();
+			}
+		);
     }
     return true;
 }
