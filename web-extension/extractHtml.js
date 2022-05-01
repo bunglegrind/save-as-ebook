@@ -1,4 +1,3 @@
-
 // Used to replace <img> src links that don't have a file extension
 // If the image src doesn't have a file type:
 // 1. Create a dummy link
@@ -8,7 +7,10 @@ var tmpGlobalContent = null;
 
 var allImages = [];
 var extractedImages = [];
+//unsupported tags: portal, details, summary, all form and button related,
+//dialog, deprecated tags (mostly), all multimedia (video, embed, source, track, etc.)
 const allowedTags = [
+	"blockquote", "menu", 
     "address", "article", "aside", "footer", "header", "h1", "h2", "h3", "h4", "h5", "h6",
     "hgroup", "nav", "section", "dd", "div", "dl", "dt", "figcaption", "figure", "hr", "li",
     "main", "ol", "p", "pre", "ul", "a", "abbr", "b", "bdi", "bdo", "br", "cite", "code", "data",
@@ -34,7 +36,6 @@ var cssClassesToTmpIds = {};
 var tmpIdsToNewCss = {};
 var tmpIdsToNewCssSTRING = {};
 
-// src: https://idpf.github.io/a11y-guidelines/content/style/reference.html
 var supportedCss = [
     "background-color",
     "border-top-width",
@@ -136,7 +137,7 @@ function extractCanvasToImg(element) {
 }
 
 // tested
-function extractSvgToImg(element) {
+function convertSvgToImg(element) {
     const serializer = new XMLSerializer();
 
     element.querySelectorAll("svg").forEach(function (elem) {
@@ -150,6 +151,17 @@ function extractSvgToImg(element) {
 			+ "\">"	+ "</img>"
 		);
     });
+}
+
+function convertPictureToImg(root) {
+	root.querySelectorAll("picture").forEach(function (picture) {
+		const img = picture.querySelector("img");
+		if (img) {
+			picture.replaceWith(img);
+		} else {
+			picture.remove();
+		}
+	});
 }
 
 // replaces all iframes by divs with the same innerHTML content
@@ -246,7 +258,7 @@ function parseHTML(rawContentString) {
                         if (attrs[i].name === "href") {
                             tmpAttrsTxt += " href=\"" + getHref(attrs[i].value) + "\"";
                         } else if (attrs[i].name === "data-class") {
- f                           tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
+                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
                         }
                     }
                     lastFragment = tmpAttrsTxt.length === 0 ? "<a>" : "<a" + tmpAttrsTxt + ">";
@@ -477,18 +489,71 @@ function walkTheDOM(f) {
 	}
 }
 
-const dataClassToClass = walkTheDOM(function (element) {
-	if (element.getAttributesNames().includes("data-class")) {
+function dataClassToClass(root) {
+	root.querySelectorAll("[data-class]").forEach(function (element) {
 		element.className = element.getAttribute("data-class");
-	}
-});
-
-function prepareImages(content) {
-	content.querySelectorAll("img").forEach(function (img) {
-		//remove all attributes but src, class, width, height following above
 	});
 }
 
+//remove all attributes but src, class, width, height
+//remove images without or empty src
+function prepareImages(root) {
+	root.querySelectorAll("img").forEach(function (img) {
+		if (!img.hasAttribute("src") || img.getAttribute("src").length === 0) {
+			img.remove();
+			return;
+		}
+		attributesArray(img.attributes).forEach(function (attribute) {
+			if (attribute === "width" || attribute === "height" || attribute === "class") {
+				return;
+			}
+			if (attribute === "src") {
+				img.setAttribute("src", getImageSrc(img.getAttribute("src")));
+				return;
+			}
+			img.removeAttribute(attribute);
+		});
+	});
+}
+
+//remove all attributes but href, class
+function prepareAnchors(root) {
+	root.querySelectorAll("a").forEach(function (a) {
+		attributesArray(a.attributes).forEach(function (attribute) {
+			if (attribute === "class") {
+				return;
+			}
+			if (attribute === "href") {
+				a.setAttribute("href", getHref(a.getAttribute("href")));
+				return;
+			}
+			a.removeAttribute(attribute);
+		});
+	});
+}
+
+function attributesArray(attrs) {
+	const attrsArray = [];
+	let i = 0;
+	while (i < attrs.length) {
+		attrsArray.push(attrs[i].name);
+		i += 1;
+	}
+	return attrsArray;
+}
+
+//remove all attributes but class, alttext, xmlns
+function prepareMaths(root) {
+	root.querySelectorAll("math").forEach(function (math) {
+		attributesArray(math.attributes).forEach(function (attribute) {
+			if (attribute === "class" || attribute === "alttext") {
+				return;
+			}
+			math.removeAttribute(attribute);
+		});
+		math.setAttribute("xmlns", "http://www.w3.org/1998/Math/MathML");
+	});
+}
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 	if (!["extract-page", "extract-selection"].includes(request.type)) {
 		return;
@@ -497,7 +562,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     let result = {};
     let pageSrc = "";
     let styleFile = null;
-	let content;
+	const content = document.createElement("div");
 
     extractIFrames(Array.from(document.querySelectorAll("iframe")));
 
@@ -505,21 +570,21 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 		//extract style and add data-class to every relevant node
 		styleFile = extractCss(request.includeStyle, request.appliedStyles);
 		if (request.type === "extract-page") {
-			content = document.body;
+			Array.from(document.body.children).forEach((el) => content.appendChild(el.cloneNode(true)));
 		} else if (request.type === "extract-selection") {
-			content = document.createElement("div");
-			getSelectedNodes().forEach((fg) => content.appendChild(fg));
+			getSelectedNodes().forEach((fg) => content.appendChild(fg.cloneNode(true)));
 		}
 		extractMathMl(content);
 		extractCanvasToImg(content);
-		extractSvgToImg(content);
+		convertSvgToImg(content);
+		convertPictureToImg(content);
 		dataClassToClass(content);
 		prepareImages(content);
 		prepareAnchors(content);
-		prepareBR(content);
-		prepareHR(content);
+		prepareMaths(content);
 	
-		tmpGlobalContent = getContent(content);
+		//tmpGlobalContent = getContent(content);
+		tmpGlobalContent = content.outerHTML;
 
 		allImages.forEach(function (tmpImg) {
 			imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
