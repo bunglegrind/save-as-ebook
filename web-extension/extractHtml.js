@@ -508,8 +508,7 @@ function prepareImages(root) {
 				return;
 			}
 			if (attribute === "src") {
-				img.setAttribute("src", getImageSrc(img.getAttribute("src")));
-				return;
+				img.setAttribute("saveasebook-src", getImageSrc(img.getAttribute("src")));
 			}
 			img.removeAttribute(attribute);
 		});
@@ -584,7 +583,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 		prepareMaths(content);
 	
 		//tmpGlobalContent = getContent(content);
-		tmpGlobalContent = content.outerHTML;
+		tmpGlobalContent = content.outerHTML.replaceAll("saveasebook-src", "src");
 
 		allImages.forEach(function (tmpImg) {
 			imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
