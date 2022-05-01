@@ -202,12 +202,6 @@ function extractIFrames(iframes, prefix = "") {
 	));
 }
 
-function preProcess(element) {
-    extractMathMl(element);
-    extractCanvasToImg(element);
-    extractSvgToImg(element);
-}
-
 function parseHTML(rawContentString) {
     allImages = [];
     extractedImages = [];
@@ -252,7 +246,7 @@ function parseHTML(rawContentString) {
                         if (attrs[i].name === "href") {
                             tmpAttrsTxt += " href=\"" + getHref(attrs[i].value) + "\"";
                         } else if (attrs[i].name === "data-class") {
-                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
+ f                           tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
                         }
                     }
                     lastFragment = tmpAttrsTxt.length === 0 ? "<a>" : "<a" + tmpAttrsTxt + ">";
@@ -318,8 +312,6 @@ function parseHTML(rawContentString) {
 
 function getContent(htmlContent) {
     try {
-        // TODO - move; called multiple times on selection
-        preProcess(document.querySelector("body"));
         let tmp = document.createElement("div");
         tmp.appendChild(htmlContent.cloneNode(true));
         let tmpHtml = "<div>" + tmp.innerHTML + "</div>";
@@ -474,28 +466,60 @@ function promiseAddZip(url, filename) {
 	});
 }
 
+function walkTheDOM(f) {
+	return function (node) {
+		f(node);
+		node = node.firstChild;
+		while (node) {
+			walkTheDOM(f)(node);
+			node = node.nextSibling;
+		}
+	}
+}
+
+const dataClassToClass = walkTheDOM(function (element) {
+	if (element.getAttributesNames().includes("data-class")) {
+		element.className = element.getAttribute("data-class");
+	}
+});
+
+function prepareImages(content) {
+	content.querySelectorAll("img").forEach(function (img) {
+		//remove all attributes but src, class, width, height following above
+	});
+}
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+	if (!["extract-page", "extract-selection"].includes(request.type)) {
+		return;
+	}
     let imgsPromises = [];
     let result = {};
     let pageSrc = "";
-    let tmpContent = "";
     let styleFile = null;
+	let content;
 
     extractIFrames(Array.from(document.querySelectorAll("iframe")));
 
     setTimeout(function () {
+		//extract style and add data-class to every relevant node
 		styleFile = extractCss(request.includeStyle, request.appliedStyles);
 		if (request.type === "extract-page") {
-			pageSrc = document.getElementsByTagName("body")[0];
-			tmpContent = getContent(pageSrc);
+			content = document.body;
 		} else if (request.type === "extract-selection") {
-			pageSrc = getSelectedNodes();
-			pageSrc.forEach(function (page) {
-				tmpContent += getContent(page);
-			});
+			content = document.createElement("div");
+			getSelectedNodes().forEach((fg) => content.appendChild(fg));
 		}
-
-		tmpGlobalContent = tmpContent;
+		extractMathMl(content);
+		extractCanvasToImg(content);
+		extractSvgToImg(content);
+		dataClassToClass(content);
+		prepareImages(content);
+		prepareAnchors(content);
+		prepareBR(content);
+		prepareHR(content);
+	
+		tmpGlobalContent = getContent(content);
 
 		allImages.forEach(function (tmpImg) {
 			imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
