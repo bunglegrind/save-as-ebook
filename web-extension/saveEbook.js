@@ -188,15 +188,15 @@ function _buildEbook(allPages, fromMenu=false) {
     
 
     zip.generateAsync({
-		type: "blob",
-		mimeType: "application/epub+zip"
-	}).then(function(content) {
-		console.log("zipped !");
-		console.log(ebookFileName);
-		chrome.runtime.sendMessage({
-			type: 'downloadEBook',
-			content,
-			filename: ebookFileName
-		});
-	});
+        type: "blob",
+        mimeType: "application/epub+zip"
+    }).then(function(content) {
+        console.log("zipped !");
+        console.log(ebookFileName);
+        chrome.runtime.sendMessage({
+            type: 'downloadEBook',
+            content,
+            filename: ebookFileName
+        });
+    });
 }
