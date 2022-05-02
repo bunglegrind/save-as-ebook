@@ -10,7 +10,7 @@ var extractedImages = [];
 //unsupported tags: portal, details, summary, all form and button related,
 //dialog, deprecated tags (mostly), all multimedia (video, embed, source, track, etc.)
 const allowedTags = [
-	"blockquote", "menu",
+    "blockquote", "menu",
     "address", "article", "aside", "footer", "header", "h1", "h2", "h3", "h4", "h5", "h6",
     "hgroup", "nav", "section", "dd", "div", "dl", "dt", "figcaption", "figure", "hr", "li",
     "main", "ol", "p", "pre", "ul", "a", "abbr", "b", "bdi", "bdo", "br", "cite", "code", "data",
@@ -68,7 +68,7 @@ var supportedCss = [
     "padding-right",
     "padding-left",
     "text-align",
-	"white-space",
+    "white-space",
     "display"
 ];
 
@@ -113,26 +113,26 @@ function getImageSrc(srcTxt) {
 
 // tested
 function extractMathMl(element) {
-		element.querySelectorAll("span[id^=\"MathJax-Element-\"]").forEach(
-		function (e) {
-			e.outerHTML = "<span>" + e.getAttribute("data-mathml") + "</span>";
-		}
-	);
+        element.querySelectorAll("span[id^=\"MathJax-Element-\"]").forEach(
+        function (e) {
+            e.outerHTML = "<span>" + e.getAttribute("data-mathml") + "</span>";
+        }
+    );
 }
 
 // tested
 function convertCanvasToImg(element) {
     element.querySelectorAll("canvas").forEach(
-		function (e) {
-			try {
-				e.outerHTML = (
-					"<img src=\""
-					+ e.toDataURL("image/jpeg")
-					+ "\" alt=\"\"></img>"
-				);
-			} catch (error) {
-				console.log(error)
-			}
+        function (e) {
+            try {
+                e.outerHTML = (
+                    "<img src=\""
+                    + e.toDataURL("image/jpeg")
+                    + "\" alt=\"\"></img>"
+                );
+            } catch (error) {
+                console.log(error)
+            }
     });
 }
 
@@ -144,62 +144,62 @@ function convertSvgToImg(element) {
         // add width & height because the result image was too big
         const bbox = elem.getBoundingClientRect();
         elem.outerHTML = (
-			"<img src=\"data:image/svg+xml;base64,"
-			+ window.btoa(serializer.serializeToString(elem))
-			+ "\" width=\"" + bbox.width
-			+ "\" height=\"" + bbox.height
-			+ "\">"	+ "</img>"
-		);
+            "<img src=\"data:image/svg+xml;base64,"
+            + window.btoa(serializer.serializeToString(elem))
+            + "\" width=\"" + bbox.width
+            + "\" height=\"" + bbox.height
+            + "\">"    + "</img>"
+        );
     });
 }
 
 function convertPictureToImg(root) {
-	root.querySelectorAll("picture").forEach(function (picture) {
-		const img = picture.querySelector("img");
-		if (img) {
-			picture.replaceWith(img);
-		} else {
-			picture.remove();
-		}
-	});
+    root.querySelectorAll("picture").forEach(function (picture) {
+        const img = picture.querySelector("img");
+        if (img) {
+            picture.replaceWith(img);
+        } else {
+            picture.remove();
+        }
+    });
 }
 
 // replaces all iframes by divs with the same innerHTML content
 function extractIFrames(iframes, prefix = "") {
-	if (!iframes.length) {
-		return;
-	}
+    if (!iframes.length) {
+        return;
+    }
 
-	function addIdInStyle(style, id) {
-		return style.split("{").map(function (segment) {
-			const selectors = segment.split("}");
-		// if the CSS is well formed, selectors may be 1 element (for the first
-		// rule) or 2 elements array. Last element is the one which contains the
-		// actual selectors.
-			selectors[selectors.length - 1] = selectors[selectors.length - 1]
-				.split(",")
-				.map(function (selector) {
-				return (
-					selector.trim().length > 0//check if it's just an empty line
-					? "#" + id + " " + selector.replace("body", "")
-					: selector
-				);
-			});
-			return selectors.join("}");
-		}).join("{");
-	}
+    function addIdInStyle(style, id) {
+        return style.split("{").map(function (segment) {
+            const selectors = segment.split("}");
+        // if the CSS is well formed, selectors may be 1 element (for the first
+        // rule) or 2 elements array. Last element is the one which contains the
+        // actual selectors.
+            selectors[selectors.length - 1] = selectors[selectors.length - 1]
+                .split(",")
+                .map(function (selector) {
+                return (
+                    selector.trim().length > 0//check if it's just an empty line
+                    ? "#" + id + " " + selector.replace("body", "")
+                    : selector
+                );
+            });
+            return selectors.join("}");
+        }).join("{");
+    }
 
     const divs = iframes.map(function (iframe, index) {
         const div = document.createElement("div");
         div.id = prefix + "save-as-ebook-iframe-" + index;
         if (!iframe.contentDocument || !iframe.contentDocument.body) {
-			console.log("CORS not enabled or empty iframe. Discarding " + div.id);
+            console.log("CORS not enabled or empty iframe. Discarding " + div.id);
             return div;
         }
         const bbox = iframe.getBoundingClientRect();
         div.style.width = bbox.width;
         div.style.height = bbox.height;
-		console.log(div.id);
+        console.log(div.id);
         div.innerHTML = iframe.contentDocument.body.innerHTML;
         Array.from(div.querySelectorAll("style")).forEach(function (style) {
             style.innerHTML = addIdInStyle(style.innerHTML, div.id);
@@ -208,118 +208,10 @@ function extractIFrames(iframes, prefix = "") {
         return div;
     });
     iframes.forEach((iframe, i) => iframe.parentNode.replaceChild(divs[i], iframe));
-	return divs.forEach((div, i) => extractIFrames(
-		Array.from(div.querySelectorAll("iframe")),
-		i + "-"
-	));
-}
-
-function parseHTML(rawContentString) {
-    allImages = [];
-    extractedImages = [];
-    let results = '';
-    let lastFragment = '';
-    let lastTag = '';
-
-    try {
-        HTMLParser(rawContentString, {
-            start: function(tag, attrs, unary) {
-                lastTag = tag;
-                if (allowedTags.indexOf(tag) < 0) {
-                    return;
-                }
-
-                if (tag === "img") {
-                    let tmpAttrsTxt = '';
-                    let tmpSrc = ''
-                    for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === "src") {
-                            tmpSrc = getImageSrc(attrs[i].value)
-                            tmpAttrsTxt += " src=\"" + tmpSrc + "\"";
-                        } else if (attrs[i].name === "data-class") {
-                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
-                        } else if (attrs[i].name === "width") {
-                            // used when converting svg to img - the result image was too big
-                            tmpAttrsTxt += " width=\"" + attrs[i].value + "\"";
-                        } else if (attrs[i].name === "height") {
-                            // used when converting svg to img - the result image was too big
-                            tmpAttrsTxt += " height=\"" + attrs[i].value + "\"";
-                        }
-                    }
-                    if (tmpSrc === "") {
-                        // ignore imgs without source
-                        lastFragment = "";
-                    } else {
-                        lastFragment = tmpAttrsTxt.length === 0 ? "<img></img>" : "<img" + tmpAttrsTxt + " alt=\"\"></img>";
-                    }
-                } else if (tag === "a") {
-                    let tmpAttrsTxt = "";
-                    for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === "href") {
-                            tmpAttrsTxt += " href=\"" + getHref(attrs[i].value) + "\"";
-                        } else if (attrs[i].name === "data-class") {
-                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
-                        }
-                    }
-                    lastFragment = tmpAttrsTxt.length === 0 ? "<a>" : "<a" + tmpAttrsTxt + ">";
-                } else if (tag === "br" || tag === "hr") {
-                    let tmpAttrsTxt = "";
-                    for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === "data-class") {
-                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
-                        }
-                    }
-                    lastFragment = "<" + tag + tmpAttrsTxt + "></" + tag + ">";
-                } else if (tag === "math") {
-                    let tmpAttrsTxt = '';
-                    tmpAttrsTxt += " xmlns=\"http://www.w3.org/1998/Math/MathML\"";
-                    for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === "alttext") {
-                            tmpAttrsTxt += " alttext=\"" + attrs[i].value + "\"";
-                        }
-                    }
-                    lastFragment = "<" + tag + tmpAttrsTxt + ">";
-                } else {
-                    let tmpAttrsTxt = "";
-                    for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === "data-class") {
-                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
-                        }
-                    }
-                    lastFragment = "<" + tag + tmpAttrsTxt + ">";
-                }
-
-                results += lastFragment;
-                lastFragment = "";
-            },
-            end: function(tag) {
-                if (allowedTags.indexOf(tag) < 0 || tag === "img" || tag === "br" || tag === "hr") {
-                    return;
-                }
-
-                results += "</" + tag + ">";
-            },
-            chars: function(text) {
-                if (lastTag !== "" && allowedTags.indexOf(lastTag) < 0) {
-                    return;
-                }
-                results += text;
-            },
-            comment: function(text) {
-                // results += "<!--" + text + "-->";
-            }
-        });
-
-        // TODO - (re)move
-        results = results.replace(/&nbsp;/gi, "&#160;");
-
-        return results;
-
-    } catch (e) {
-        console.log("Error:", e);
-        return "Error: " + e  //+"  " + force($(rawContentString))
-    }
-
+    return divs.forEach((div, i) => extractIFrames(
+        Array.from(div.querySelectorAll("iframe")),
+        i + "-"
+    ));
 }
 
 function getSelectedNodes() {
@@ -336,7 +228,7 @@ function getSelectedNodes() {
 }
 
 function isVisible(elem) {
-	return Boolean(
+    return Boolean(
         elem.offsetWidth
         || elem.offsetHeight
         || elem.getClientRects().length
@@ -347,11 +239,11 @@ function extractCss(includeStyle, appliedStyles) {
     if (includeStyle) {
         document.querySelectorAll("body *").forEach(function (pre, i) {
             if (
-				allowedTags.indexOf(pre.tagName.toLowerCase()) < 0
-				|| mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1
-			) {
-				return;
-			}
+                allowedTags.indexOf(pre.tagName.toLowerCase()) < 0
+                || mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1
+            ) {
+                return;
+            }
 
             if (!isVisible(pre)) {
                 pre.outerHTML = "";
@@ -360,50 +252,50 @@ function extractCss(includeStyle, appliedStyles) {
 
                 const elementId = pre.tagName + "-" + generateRandomNumber(true);
                 let tmpName = generateRandomTag(2) + i;
-				cssClassesToTmpIds[elementId] = tmpName;
-				const  tmpNewCss = {};
-				const styles = window.getComputedStyle(pre);
+                cssClassesToTmpIds[elementId] = tmpName;
+                const  tmpNewCss = {};
+                const styles = window.getComputedStyle(pre);
 
-				for (let cssTagName of supportedCss.concat(inheritedCss)) {
-					let cssValue = styles.getPropertyValue(cssTagName);
-					if (cssValue && cssValue.length > 0) {
-						if (cssTagName === "font-size") {
-							const parentFontSize = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("font-size"));
-							if (parentFontSize > 0) {
-								cssValue = (parseInt(cssValue)/parentFontSize).toFixed(1) + "em";
-							}
-						}
-						if (cssTagName === "line-height") {
-							const fontSize = parseInt(styles.getPropertyValue("font-size"));
-							const numCssValue = parseInt(cssValue);
-							if (numCssValue > 0) {
-								cssValue = (numCssValue / fontSize).toFixed(1);
-							}
-						}
-						tmpNewCss[cssTagName] = cssValue;
-					}
-				}
+                for (let cssTagName of supportedCss.concat(inheritedCss)) {
+                    let cssValue = styles.getPropertyValue(cssTagName);
+                    if (cssValue && cssValue.length > 0) {
+                        if (cssTagName === "font-size") {
+                            const parentFontSize = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("font-size"));
+                            if (parentFontSize > 0) {
+                                cssValue = (parseInt(cssValue)/parentFontSize).toFixed(1) + "em";
+                            }
+                        }
+                        if (cssTagName === "line-height") {
+                            const fontSize = parseInt(styles.getPropertyValue("font-size"));
+                            const numCssValue = parseInt(cssValue);
+                            if (numCssValue > 0) {
+                                cssValue = (numCssValue / fontSize).toFixed(1);
+                            }
+                        }
+                        tmpNewCss[cssTagName] = cssValue;
+                    }
+                }
 
-			// Reuse CSS - if the same css code was generated for another element, reuse it's class name
-				let tcss = JSON.stringify(tmpNewCss)
-				let found = false
+            // Reuse CSS - if the same css code was generated for another element, reuse it's class name
+                let tcss = JSON.stringify(tmpNewCss)
+                let found = false
 
-				if (Object.keys(tmpIdsToNewCssSTRING).length === 0) {
-					tmpIdsToNewCssSTRING[tmpName] = tcss;
-					tmpIdsToNewCss[tmpName] = tmpNewCss;
-				} else {
-					for (const key in tmpIdsToNewCssSTRING) {
-						if (tmpIdsToNewCssSTRING[key] === tcss) {
-							tmpName = key
-							found = true
-							break
-						}
-					}
-					if (!found) {
-						tmpIdsToNewCssSTRING[tmpName] = tcss;
-						tmpIdsToNewCss[tmpName] = tmpNewCss;
-					}
-				}
+                if (Object.keys(tmpIdsToNewCssSTRING).length === 0) {
+                    tmpIdsToNewCssSTRING[tmpName] = tcss;
+                    tmpIdsToNewCss[tmpName] = tmpNewCss;
+                } else {
+                    for (const key in tmpIdsToNewCssSTRING) {
+                        if (tmpIdsToNewCssSTRING[key] === tcss) {
+                            tmpName = key
+                            found = true
+                            break
+                        }
+                    }
+                    if (!found) {
+                        tmpIdsToNewCssSTRING[tmpName] = tcss;
+                        tmpIdsToNewCss[tmpName] = tmpNewCss;
+                    }
+                }
                 pre.setAttribute('data-class', tmpName);
             }
         });
@@ -429,47 +321,36 @@ function extractCss(includeStyle, appliedStyles) {
 /////
 
 function promiseAddZip(url, filename) {
-	return fetch(url).then(function (data) {
-		return data.arrayBuffer();
-	}).then(function (data) {
-		// TODO - move to utils.js
-		if (filename.endsWith("TODO-EXTRACT")) {
-			let oldFilename = filename
-			let arr = (new Uint8Array(data)).subarray(0, 4);
-			let header = "";
-			for (let i = 0; i < arr.length; i++) {
-				header += arr[i].toString(16);
-			}
-			if (header.startsWith("89504e47")) {
-				filename = filename.replace("TODO-EXTRACT", "png")
-			} else if (header.startsWith("47494638")) {
-				filename = filename.replace("TODO-EXTRACT", "gif")
-			} else if (header.startsWith("ffd8ff")) {
-				filename = filename.replace("TODO-EXTRACT", "jpg")
-			} else {
-				// ERROR
-				return Promise.reject("Error! Unable to extract the image type! " + filename + " " +  url);
-			}
-			htmlContent = htmlContent.replace(oldFilename, filename);
-		}
-		extractedImages.push({
-			filename: filename,
-			// TODO - must be JSON serializable
-			data: base64ArrayBuffer(data)
-		});
-		return true;
-	});
-}
-
-function walkTheDOM(f) {
-	return function (node) {
-		f(node);
-		node = node.firstChild;
-		while (node) {
-			walkTheDOM(f)(node);
-			node = node.nextSibling;
-		}
-	}
+    return fetch(url).then(function (data) {
+        return data.arrayBuffer();
+    }).then(function (data) {
+        // TODO - move to utils.js
+        if (filename.endsWith("TODO-EXTRACT")) {
+            let oldFilename = filename
+            let arr = (new Uint8Array(data)).subarray(0, 4);
+            let header = "";
+            for (let i = 0; i < arr.length; i++) {
+                header += arr[i].toString(16);
+            }
+            if (header.startsWith("89504e47")) {
+                filename = filename.replace("TODO-EXTRACT", "png")
+            } else if (header.startsWith("47494638")) {
+                filename = filename.replace("TODO-EXTRACT", "gif")
+            } else if (header.startsWith("ffd8ff")) {
+                filename = filename.replace("TODO-EXTRACT", "jpg")
+            } else {
+                // ERROR
+                return Promise.reject("Error! Unable to extract the image type! " + filename + " " +  url);
+            }
+            htmlContent = htmlContent.replace(oldFilename, filename);
+        }
+        extractedImages.push({
+            filename: filename,
+            // TODO - must be JSON serializable
+            data: base64ArrayBuffer(data)
+        });
+        return true;
+    });
 }
 
 function getAttributes(element) {
@@ -484,128 +365,134 @@ function getAttributes(element) {
 }
 
 function dataClassToClass(root) {
-	root.querySelectorAll("[data-class]").forEach(function (element) {
-		element.className = element.getAttribute("data-class");
-	});
+    root.querySelectorAll("[data-class]").forEach(function (element) {
+        element.className = element.getAttribute("data-class");
+        element.removeAttribute("data-class");
+    });
 }
 
 //remove all attributes but src, class, width, height
 //remove images without or empty src
 function prepareImages(root) {
-	root.querySelectorAll("img").forEach(function (img) {
-		if (!img.hasAttribute("src") || img.getAttribute("src").length === 0) {
-			img.remove();
-			return;
-		}
+    root.querySelectorAll("img").forEach(function (img) {
+        if (!img.hasAttribute("src") || img.getAttribute("src").length === 0) {
+            img.remove();
+            return;
+        }
         getAttributes(img).forEach(function (attribute) {
-			if (attribute === "width" || attribute === "height" || attribute === "class") {
-				return;
-			}
+            if (attribute === "width" || attribute === "height" || attribute === "class") {
+                return;
+            }
             //workaround in order to disable automatic fetching of images
             if (attribute === "src") {
-				img.setAttribute(
+                img.setAttribute(
                     "saveasebook-src",
                     getImageSrc(img.getAttribute("src"))
                 );
-			}
-			img.removeAttribute(attribute);
-		});
-	});
+            }
+            img.removeAttribute(attribute);
+        });
+    });
 }
 
 //remove all attributes but href, class
 function prepareAnchors(root) {
-	root.querySelectorAll("a").forEach(function (a) {
+    root.querySelectorAll("a").forEach(function (a) {
         getAttributes(a).forEach(function (attribute) {
-			if (attribute === "class") {
-				return;
-			}
-			if (attribute === "href") {
-				a.setAttribute("href", getHref(a.getAttribute("href")));
-				return;
-			}
-			a.removeAttribute(attribute);
-		});
-	});
+            if (attribute === "class") {
+                return;
+            }
+            if (attribute === "href") {
+                a.setAttribute("href", getHref(a.getAttribute("href")));
+                return;
+            }
+            a.removeAttribute(attribute);
+        });
+    });
 }
 
 //remove all attributes but class, alttext, xmlns
 function prepareMaths(root) {
-	root.querySelectorAll("math").forEach(function (math) {
+    root.querySelectorAll("math").forEach(function (math) {
         getAttributes(math).forEach(function (attribute) {
-			if (attribute === "class" || attribute === "alttext") {
-				return;
-			}
-			math.removeAttribute(attribute);
-		});
-		math.setAttribute("xmlns", "http://www.w3.org/1998/Math/MathML");
-	});
+            if (attribute === "class" || attribute === "alttext") {
+                return;
+            }
+            math.removeAttribute(attribute);
+        });
+        math.setAttribute("xmlns", "http://www.w3.org/1998/Math/MathML");
+    });
 }
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-	if (!["extract-page", "extract-selection"].includes(request.type)) {
-		return;
-	}
+    if (!["extract-page", "extract-selection"].includes(request.type)) {
+        return;
+    }
     let imgsPromises = [];
     let result = {};
-    let pageSrc = "";
     let styleFile = null;
-	const content = document.createElement("div");
+    const content = document.createElement("div");
 
     extractIFrames(Array.from(document.querySelectorAll("iframe")));
 
     setTimeout(function () {
-		//extract style and add data-class to every relevant node
-		styleFile = extractCss(request.includeStyle, request.appliedStyles);
-		if (request.type === "extract-page") {
-			Array.from(document.body.children).forEach((el) => content.appendChild(el.cloneNode(true)));
-		} else if (request.type === "extract-selection") {
-			getSelectedNodes().forEach((fg) => content.appendChild(fg.cloneNode(true)));
-		}
-		extractMathMl(content);
-		convertCanvasToImg(content);
-		convertSvgToImg(content);
-		convertPictureToImg(content);
-		dataClassToClass(content);
-		prepareImages(content);
-		prepareAnchors(content);
-		prepareMaths(content);
+        //extract style and add data-class to every relevant node
+        styleFile = extractCss(request.includeStyle, request.appliedStyles);
+        if (request.type === "extract-page") {
+            Array.from(document.body.children).forEach((el) => content.appendChild(el.cloneNode(true)));
+        } else if (request.type === "extract-selection") {
+            getSelectedNodes().forEach((fg) => content.appendChild(fg.cloneNode(true)));
+        }
+        extractMathMl(content);
+        convertCanvasToImg(content);
+        convertSvgToImg(content);
+        convertPictureToImg(content);
+        dataClassToClass(content);
+        prepareImages(content);
+        prepareAnchors(content);
+        prepareMaths(content);
         //remove not allowed tags
-        walkTheDOM(function (node) {
-            if (
-                node.nodeType === Node.ELEMENT_NODE
-                && !allowedTags.includes(node.tagName.toLowerCase())
-            ) {
+        content.querySelectorAll("*").forEach(function (node) {
+            if (!allowedTags.includes(node.tagName.toLowerCase())) {
+                //TODO: remove display:none?
                 node.remove();
+            } else {//TODO: too many if/else, refactoring needed
+                if (!["img", "a", "math"].includes(node.tagName.toLowerCase())) {
+                    getAttributes(node).forEach(function (attribute) {
+                        if (attribute !== "class") {
+                            node.removeAttribute(attribute);
+                        }
+                    });
+                }
             }
-        })(content);
+        });
 
         //workaround in order to disable automatic fetching of images
-		htmlContent = content.outerHTML.replaceAll(
+        htmlContent = content.outerHTML.replaceAll(
             "saveasebook-src",
             "src"
         );
 
-		allImages.forEach(function (tmpImg) {
-			imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
-		});
+        allImages.forEach(function (tmpImg) {
+            imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
+        });
 
-		Promise.all(imgsPromises).then(function () {
-				const tmpTitle = getPageTitle(document.title);
-				result = {
-					url: getPageUrl(tmpTitle),
-					title: tmpTitle,
-					baseUrl: getBaseUrl(),
-					styleFileContent: styleFile,
-					styleFileName: "style" + generateRandomNumber() + ".css",
-					images: extractedImages,
-					content: htmlContent
-				};
-				sendResponse(result);
-			}
-		).catch(function (e) {
-			console.log("Error:", e);
-			sendResponse(null);
-		});
-	}, 3000);
+        Promise.all(imgsPromises).then(function () {
+                const tmpTitle = getPageTitle(document.title);
+                result = {
+                    url: getPageUrl(tmpTitle),
+                    title: tmpTitle,
+                    baseUrl: getBaseUrl(),
+                    styleFileContent: styleFile,
+                    styleFileName: "style" + generateRandomNumber() + ".css",
+                    images: extractedImages,
+                    content: htmlContent
+                };
+                sendResponse(result);
+            }
+        ).catch(function (e) {
+            console.log("Error:", e);
+            sendResponse(null);
+        });
+    }, 3000);
     return true;
 });
