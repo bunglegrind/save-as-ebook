@@ -2,15 +2,15 @@
 // If the image src doesn't have a file type:
 // 1. Create a dummy link
 // 2. Detect image type from the binary data & create new links
-// 3. Replace all the dummy links in tmpGlobalContent with the new links
-var tmpGlobalContent = null;
+// 3. Replace all the dummy links in htmlContent with the new links
+var htmlContent = null;
 
 var allImages = [];
 var extractedImages = [];
 //unsupported tags: portal, details, summary, all form and button related,
 //dialog, deprecated tags (mostly), all multimedia (video, embed, source, track, etc.)
 const allowedTags = [
-	"blockquote", "menu", 
+	"blockquote", "menu",
     "address", "article", "aside", "footer", "header", "h1", "h2", "h3", "h4", "h5", "h6",
     "hgroup", "nav", "section", "dd", "div", "dl", "dt", "figcaption", "figure", "hr", "li",
     "main", "ol", "p", "pre", "ul", "a", "abbr", "b", "bdi", "bdo", "br", "cite", "code", "data",
@@ -121,7 +121,7 @@ function extractMathMl(element) {
 }
 
 // tested
-function extractCanvasToImg(element) {
+function convertCanvasToImg(element) {
     element.querySelectorAll("canvas").forEach(
 		function (e) {
 			try {
@@ -173,7 +173,7 @@ function extractIFrames(iframes, prefix = "") {
 	function addIdInStyle(style, id) {
 		return style.split("{").map(function (segment) {
 			const selectors = segment.split("}");
-		// if the CSS is well formed, selectors may be 1 element (for the first 
+		// if the CSS is well formed, selectors may be 1 element (for the first
 		// rule) or 2 elements array. Last element is the one which contains the
 		// actual selectors.
 			selectors[selectors.length - 1] = selectors[selectors.length - 1]
@@ -322,20 +322,6 @@ function parseHTML(rawContentString) {
 
 }
 
-function getContent(htmlContent) {
-    try {
-        let tmp = document.createElement("div");
-        tmp.appendChild(htmlContent.cloneNode(true));
-        let tmpHtml = "<div>" + tmp.innerHTML + "</div>";
-        return parseHTML(tmpHtml);
-    } catch (e) {
-        console.log("Error:", e);
-        return htmlContent;
-    }
-}
-
-/////
-
 function getSelectedNodes() {
     // if (document.selection) {
         // return document.selection.createRange().parentElement();
@@ -348,8 +334,6 @@ function getSelectedNodes() {
     }
     return docfrag;
 }
-
-/////
 
 function isVisible(elem) {
 	return Boolean(
@@ -401,7 +385,6 @@ function extractCss(includeStyle, appliedStyles) {
 				}
 
 			// Reuse CSS - if the same css code was generated for another element, reuse it's class name
-
 				let tcss = JSON.stringify(tmpNewCss)
 				let found = false
 
@@ -467,7 +450,7 @@ function promiseAddZip(url, filename) {
 				// ERROR
 				return Promise.reject("Error! Unable to extract the image type! " + filename + " " +  url);
 			}
-			tmpGlobalContent = tmpGlobalContent.replace(oldFilename, filename);
+			htmlContent = htmlContent.replace(oldFilename, filename);
 		}
 		extractedImages.push({
 			filename: filename,
@@ -489,6 +472,17 @@ function walkTheDOM(f) {
 	}
 }
 
+function getAttributes(element) {
+    const attrs = element.attributes;
+    const attrsArray = [];
+    let i = 0;
+    while (i < attrs.length) {
+        attrsArray.push(attrs[i].name);
+        i += 1;
+    }
+    return attrsArray;
+}
+
 function dataClassToClass(root) {
 	root.querySelectorAll("[data-class]").forEach(function (element) {
 		element.className = element.getAttribute("data-class");
@@ -503,12 +497,16 @@ function prepareImages(root) {
 			img.remove();
 			return;
 		}
-		attributesArray(img.attributes).forEach(function (attribute) {
+        getAttributes(img).forEach(function (attribute) {
 			if (attribute === "width" || attribute === "height" || attribute === "class") {
 				return;
 			}
-			if (attribute === "src") {
-				img.setAttribute("saveasebook-src", getImageSrc(img.getAttribute("src")));
+            //workaround in order to disable automatic fetching of images
+            if (attribute === "src") {
+				img.setAttribute(
+                    "saveasebook-src",
+                    getImageSrc(img.getAttribute("src"))
+                );
 			}
 			img.removeAttribute(attribute);
 		});
@@ -518,7 +516,7 @@ function prepareImages(root) {
 //remove all attributes but href, class
 function prepareAnchors(root) {
 	root.querySelectorAll("a").forEach(function (a) {
-		attributesArray(a.attributes).forEach(function (attribute) {
+        getAttributes(a).forEach(function (attribute) {
 			if (attribute === "class") {
 				return;
 			}
@@ -531,20 +529,10 @@ function prepareAnchors(root) {
 	});
 }
 
-function attributesArray(attrs) {
-	const attrsArray = [];
-	let i = 0;
-	while (i < attrs.length) {
-		attrsArray.push(attrs[i].name);
-		i += 1;
-	}
-	return attrsArray;
-}
-
 //remove all attributes but class, alttext, xmlns
 function prepareMaths(root) {
 	root.querySelectorAll("math").forEach(function (math) {
-		attributesArray(math.attributes).forEach(function (attribute) {
+        getAttributes(math).forEach(function (attribute) {
 			if (attribute === "class" || attribute === "alttext") {
 				return;
 			}
@@ -574,16 +562,28 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 			getSelectedNodes().forEach((fg) => content.appendChild(fg.cloneNode(true)));
 		}
 		extractMathMl(content);
-		extractCanvasToImg(content);
+		convertCanvasToImg(content);
 		convertSvgToImg(content);
 		convertPictureToImg(content);
 		dataClassToClass(content);
 		prepareImages(content);
 		prepareAnchors(content);
 		prepareMaths(content);
-	
-		//tmpGlobalContent = getContent(content);
-		tmpGlobalContent = content.outerHTML.replaceAll("saveasebook-src", "src");
+        //remove not allowed tags
+        walkTheDOM(function (node) {
+            if (
+                node.nodeType === Node.ELEMENT_NODE
+                && !allowedTags.includes(node.tagName.toLowerCase())
+            ) {
+                node.remove();
+            }
+        })(content);
+
+        //workaround in order to disable automatic fetching of images
+		htmlContent = content.outerHTML.replaceAll(
+            "saveasebook-src",
+            "src"
+        );
 
 		allImages.forEach(function (tmpImg) {
 			imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
@@ -598,7 +598,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 					styleFileContent: styleFile,
 					styleFileName: "style" + generateRandomNumber() + ".css",
 					images: extractedImages,
-					content: tmpGlobalContent
+					content: htmlContent
 				};
 				sendResponse(result);
 			}
