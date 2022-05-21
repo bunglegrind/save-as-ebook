@@ -1,6 +1,6 @@
 import defaultStyles from "./defaultStyles.js";
 import warning from "./warning.js";
-import parseq from "./libs/parseq.js";
+import parseq from "./libs/parseq-extended.js";
 
 import chr from "./adapter.js";
 

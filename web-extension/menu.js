@@ -1,5 +1,5 @@
 import adapter from "./adapter.js";
-import parseq from "./libs/parseq.js";
+import parseq from "./libs/parseq-extended.js";
 
 const commands = Object.keys(chrome.runtime.getManifest().commands);
 
