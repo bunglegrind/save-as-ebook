@@ -68,11 +68,11 @@ function showEditor() {
             var listItem = document.createElement('li');
             listItem.id = 'li' + i;
             listItem.className = 'chapterEditor-chapter-item';
-            listItem.draggable = "true";
 
             var dragHandler = document.createElement('span');
             dragHandler.className = 'chapterEditor-drag-handler';
             dragHandler.innerText = '\u21f5';
+            dragHandler.draggable = "true";
 
             var label = document.createElement('input');
             label.type = 'text';
@@ -97,16 +97,16 @@ function showEditor() {
             listItem.appendChild(dragHandler);
             listItem.appendChild(label);
             listItem.appendChild(buttons);
-            listItem.addEventListener("dragstart", (function (listItem) {
+            listItem.addEventListener("dragstart", (function (item) {
                 return function () {
-                    listItem.classList.add("dragged");
+                    item.parentElement.classList.add("dragged");
                 }
-            }(listItem)));
-            listItem.addEventListener("dragend", (function (listItem) {
+            }(dragHandler)));
+            listItem.addEventListener("dragend", (function (item) {
                 return function () {
-                    listItem.classList.remove("dragged");
+                    item.parentElement.classList.remove("dragged");
                 }
-            }(listItem)));
+            }(dragHandler)));
             list.appendChild(listItem);
         }
 

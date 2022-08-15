@@ -3,3 +3,5 @@ tests/pages/
 .DS_Store
 *~
 *.orig
+package.json
+package-lock.json
