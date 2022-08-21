@@ -169,7 +169,7 @@ ul, ul.chapterEditor-chapters-list {
         height: 30px;
         padding: 4px 0;
         font-size: 14px;
-		cursor: move;
+        cursor: move;
     }
     .chapterEditor-chapter-item > input[type="text"] {
         padding: 3px;

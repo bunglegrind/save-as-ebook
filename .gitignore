@@ -4,3 +4,4 @@ tests/pages/
 *.swp
 *.swo
 *~
+*.orig

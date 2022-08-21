@@ -2,14 +2,15 @@
 // If the image src doesn't have a file type:
 // 1. Create a dummy link
 // 2. Detect image type from the binary data & create new links
-// 3. Replace all the dummy links in tmpGlobalContent with the new links
-var tmpGlobalContent = null;
+// 3. Replace all the dummy links in htmlContent with the new links
+var htmlContent = null;
 
 var allImages = [];
 var extractedImages = [];
 const allowedTags = [
+    "blockquote", "menu",
     "address", "article", "aside", "footer", "header", "h1", "h2", "h3", "h4", "h5", "h6",
-    "hgroup", "nav", "section", "dd", "div", "dl", "dt", "figcaption", "figure", "hr", "li",
+    "hgroup", "nav", "section", "dd", "div", "dl", "dt", "figcaption", "figure", "font", "hr", "li",
     "main", "ol", "p", "pre", "ul", "a", "abbr", "b", "bdi", "bdo", "br", "cite", "code", "data",
     "dfn", "em", "i", "img", "kbd", "mark", "q", "rb", "rp", "rt", "rtc", "ruby", "s", "samp", "small", "span",
     "strong", "sub", "sup", "time", "u", "var", "wbr", "del", "ins", "caption", "col", "colgroup",
@@ -33,7 +34,6 @@ var cssClassesToTmpIds = {};
 var tmpIdsToNewCss = {};
 var tmpIdsToNewCssSTRING = {};
 
-// src: https://idpf.github.io/a11y-guidelines/content/style/reference.html
 var supportedCss = [
     "background-color",
     "border-top-width",
@@ -57,16 +57,20 @@ var supportedCss = [
     "font-family",
     "line-height",
     "list-style",
-    "padding-top",
     "margin-top",
     "margin-bottom",
+    "margin-right",
     "margin-left",
+    "padding-top",
     "padding-bottom",
+    "padding-right",
     "padding-left",
     "text-align",
-	"white-space",
+    "white-space",
     "display"
 ];
+
+var inheritedCss = [];
 //////
 
 function getImageSrc(srcTxt = "") {
@@ -100,83 +104,93 @@ function getImageSrc(srcTxt = "") {
 
 // tested
 function extractMathMl(element) {
-		element.querySelectorAll("span[id^=\"MathJax-Element-\"]").forEach(
-		function (e) {
-			e.outerHTML = "<span>" + e.getAttribute("data-mathml") + "</span>";
-		}
-	);
+        element.querySelectorAll("span[id^=\"MathJax-Element-\"]").forEach(
+        function (e) {
+            e.outerHTML = "<span>" + e.getAttribute("data-mathml") + "</span>";
+        }
+    );
 }
 
 // tested
-function extractCanvasToImg(element) {
+function convertCanvasToImg(element) {
     element.querySelectorAll("canvas").forEach(
-		function (e) {
-			try {
-				e.outerHTML = (
-					"<img src=\""
-					+ e.toDataURL("image/jpeg")
-					+ "\" alt=\"\"></img>"
-				);
-			} catch (error) {
-				console.log(element);
-				console.log(error)
-			}
+        function (e) {
+            try {
+                e.outerHTML = (
+                    "<img src=\""
+                    + e.toDataURL("image/jpeg")
+                    + "\" alt=\"\"></img>"
+                );
+            } catch (error) {
+                console.log(error)
+            }
     });
 }
 
 // tested
-function extractSvgToImg(element) {
+function convertSvgToImg(element) {
     const serializer = new XMLSerializer();
 
     element.querySelectorAll("svg").forEach(function (elem) {
         // add width & height because the result image was too big
         const bbox = elem.getBoundingClientRect();
         elem.outerHTML = (
-			"<img src=\"data:image/svg+xml;base64,"
-			+ window.btoa(serializer.serializeToString(elem))
-			+ "\" width=\"" + bbox.width
-			+ "\" height=\"" + bbox.height
-			+ "\">"	+ "</img>"
-		);
+            "<img src=\"data:image/svg+xml;base64,"
+            + window.btoa(serializer.serializeToString(elem))
+            + "\" width=\"" + bbox.width
+            + "\" height=\"" + bbox.height
+            + "\">"    + "</img>"
+        );
+    });
+}
+
+function convertPictureToImg(root) {
+    root.querySelectorAll("picture").forEach(function (picture) {
+        const img = picture.querySelector("img");
+        if (img) {
+            picture.replaceWith(img);
+        } else {
+            picture.remove();
+        }
     });
 }
 
 // replaces all iframes by divs with the same innerHTML content
 function extractIFrames(iframes, prefix = "") {
-	if (!iframes.length) {
-		return;
-	}
+    if (!iframes.length) {
+        return;
+    }
 
-	function addIdInStyle(style, id) {
-		return style.split("{").map(function (segment) {
-			const selectors = segment.split("}");
-		// if the CSS is well formed, selectors may be 1 element (for the first 
-		// rule) or 2 elements array. Last element is the one which contains the
-		// actual selectors.
-			selectors[selectors.length - 1] = selectors[selectors.length - 1]
-				.split(",")
-				.map(function (selector) {
-				return (
-					selector.trim().length > 0//check if it's just an empty line
-					? "#" + id + " " + selector.replace("body", "")
-					: selector
-				);
-			});
-			return selectors.join("}");
-		}).join("{");
-	}
+    function addIdInStyle(style, id) {
+        return style.split("{").map(function (segment) {
+            const selectors = segment.split("}");
+        // if the CSS is well formed, selectors may be 1 element (for the first
+        // rule) or 2 elements array. Last element is the one which contains the
+        // actual selectors.
+            selectors[selectors.length - 1] = selectors[selectors.length - 1]
+                .split(",")
+                .map(function (selector) {
+                return (
+                    selector.trim().length > 0//check if it's just an empty line
+                    ? "#" + id + " " + selector.replace("body", "")
+                    : selector
+                );
+            });
+            return selectors.join("}");
+        }).join("{");
+    }
 
     const divs = iframes.map(function (iframe, index) {
         const div = document.createElement("div");
         div.id = prefix + "save-as-ebook-iframe-" + index;
         if (!iframe.contentDocument || !iframe.contentDocument.body) {
-			console.log(`CORS not enabled or empty iframe. Discarding ${div.id}`);
+            console.log("CORS not enabled or empty iframe. Discarding " + div.id);
             return div;
         }
         const bbox = iframe.getBoundingClientRect();
         div.style.width = bbox.width;
         div.style.height = bbox.height;
-		console.log(div.id);
+        console.log(div.id);
         div.innerHTML = iframe.contentDocument.body.innerHTML;
         Array.from(div.querySelectorAll("style")).forEach(function (style) {
             style.innerHTML = addIdInStyle(style.innerHTML, div.id);
@@ -185,145 +199,11 @@ function extractIFrames(iframes, prefix = "") {
         return div;
     });
     iframes.forEach((iframe, i) => iframe.parentNode.replaceChild(divs[i], iframe));
-	return divs.forEach((div, i) => extractIFrames(
-		Array.from(div.querySelectorAll("iframe")),
-		i + "-"
-	));
+    return divs.forEach((div, i) => extractIFrames(
+        Array.from(div.querySelectorAll("iframe")),
+        i + "-"
+    ));
 }
-
-function preProcess(element) {
-    extractMathMl(element);
-    extractCanvasToImg(element);
-    extractSvgToImg(element);
-}
-
-function parseHTML(rawContentString) {
-    allImages = [];
-    extractedImages = [];
-    let results = "";
-    let lastFragment = "";
-    let lastTag = "";
-
-    try {
-        HTMLParser(rawContentString, {
-            start: function(tag, attrs, unary) {
-                lastTag = tag;
-                if (allowedTags.indexOf(tag) < 0) {
-                    return;
-                }
-
-                if (tag === "img") {
-                    let tmpAttrsTxt = "";
-                    let tmpSrc = "";
-                    for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === "src") {
-                            tmpSrc = getImageSrc(attrs[i].value)
-                            tmpAttrsTxt += " src=\"" + tmpSrc + "\"";
-                        } else if (attrs[i].name === "data-class") {
-                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
-                        } else if (attrs[i].name === "width") {
-			// used when converting svg to img - the result image was too big
-                            tmpAttrsTxt += " width=\"" + attrs[i].value + "\"";
-                        } else if (attrs[i].name === "height") {
-			// used when converting svg to img - the result image was too big
-                            tmpAttrsTxt += " height=\"" + attrs[i].value + "\"";
-                        }
-                    }
-                    if (tmpSrc === "") {
-                        // ignore imgs without source
-                        lastFragment = "";
-                    } else {
-                        lastFragment = (
-							tmpAttrsTxt.length === 0
-							? "<img></img>"
-							: "<img" + tmpAttrsTxt + " alt=\"\"></img>"
-						);
-                    }
-                } else if (tag === "a") {
-                    let tmpAttrsTxt = "";
-                    for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === "href") {
-                            tmpAttrsTxt += " href=\"" + getHref(attrs[i].value) + "\"";
-                        } else if (attrs[i].name === "data-class") {
-                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
-                        }
-                    }
-                    lastFragment = tmpAttrsTxt.length === 0 ? "<a>" : "<a" + tmpAttrsTxt + ">";
-                } else if (tag === "br" || tag === "hr") {
-                    let tmpAttrsTxt = "";
-                    for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === "data-class") {
-                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
-                        }
-                    }
-                    lastFragment = "<" + tag + tmpAttrsTxt + "></" + tag + ">";
-                } else if (tag === "math") {
-                    let tmpAttrsTxt = "";
-                    tmpAttrsTxt += " xmlns=\"http://www.w3.org/1998/Math/MathML\"";
-                    for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === "alttext") {
-                            tmpAttrsTxt += " alttext=\"" + attrs[i].value + "\"";
-                        }
-                    }
-                    lastFragment = "<" + tag + tmpAttrsTxt + ">";
-                } else {
-                    let tmpAttrsTxt = "";
-                    for (let i = 0; i < attrs.length; i++) {
-                        if (attrs[i].name === "data-class") {
-                            tmpAttrsTxt += " class=\"" + attrs[i].value + "\"";
-                        }
-                    }
-                    lastFragment = "<" + tag + tmpAttrsTxt + ">";
-                }
-
-                results += lastFragment;
-                lastFragment = "";
-            },
-            end: function(tag) {
-                if (allowedTags.indexOf(tag) < 0 || tag === "img" || tag === "br" || tag === "hr") {
-                    return;
-                }
-
-                results += "</" + tag + ">";
-            },
-            chars: function(text) {
-                if (lastTag !== "" && allowedTags.indexOf(lastTag) < 0) {
-                    return;
-                }
-                results += text;
-            },
-            comment: function(text) {
-                // results += "<!--" + text + "-->";
-            }
-        });
-
-        // TODO - (re)move
-        results = results.replace(/&nbsp;/gi, "&#160;");
-
-        return results;
-
-    } catch (e) {
-        console.log("Error:", e);
-        return "Error: " + e  //+"  " + force($(rawContentString))
-    }
-
-}
-
-function getContent(htmlContent) {
-    try {
-        // TODO - move; called multiple times on selection
-        preProcess(document.querySelector("body"));
-        let tmp = document.createElement("div");
-        tmp.appendChild(htmlContent.cloneNode(true));
-        let tmpHtml = "<div>" + tmp.innerHTML + "</div>";
-        return parseHTML(tmpHtml);
-    } catch (e) {
-        console.log("Error: ", e);
-        return htmlContent;
-    }
-}
-
-/////
 
 function getSelectedNodes() {
     // if (document.selection) {
@@ -338,10 +218,8 @@ function getSelectedNodes() {
     return docfrag;
 }
 
-/////
-
 function isVisible(elem) {
-	return Boolean(
+    return Boolean(
         elem.offsetWidth
         || elem.offsetHeight
         || elem.getClientRects().length
@@ -352,11 +230,11 @@ function extractCss(includeStyle, appliedStyles) {
     if (includeStyle) {
         document.querySelectorAll("body *").forEach(function (pre, i) {
             if (
-				allowedTags.indexOf(pre.tagName.toLowerCase()) < 0
-				|| mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1
-			) {
-				return;
-			}
+                allowedTags.indexOf(pre.tagName.toLowerCase()) < 0
+                || mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1
+            ) {
+                return;
+            }
 
             if (!isVisible(pre)) {
                 pre.outerHTML = "";
@@ -365,52 +243,51 @@ function extractCss(includeStyle, appliedStyles) {
 
                 const elementId = pre.tagName + "-" + generateRandomNumber(true);
                 let tmpName = generateRandomTag(2) + i;
-				cssClassesToTmpIds[elementId] = tmpName;
-				const  tmpNewCss = {};
-				const styles = window.getComputedStyle(pre);
+                cssClassesToTmpIds[elementId] = tmpName;
+                const  tmpNewCss = {};
+                const styles = window.getComputedStyle(pre);
 
-				for (let cssTagName of supportedCss) {
-					let cssValue = styles[cssTagName];
-					if (cssValue && cssValue.length > 0) {
-						if (cssTagName === "font-size") {
-							const parentFontSize = parseInt(getComputedStyle(pre.parentElement)["font-size"]);
-							if (parentFontSize > 0) {
-								cssValue = (parseInt(cssValue)/parentFontSize).toFixed(1) + "em";
-							}
-						}
-						if (cssTagName === "line-height") {
-							const fontSize = styles["font-size"];
-							const numCssValue = parseInt(cssValue);
-							if (numCssValue > 0) {
-								cssValue = (numCssValue / fontSize).toFixed(1);
-							}
-						}
-						tmpNewCss[cssTagName] = cssValue;
-					}
-				}
+                for (let cssTagName of supportedCss.concat(inheritedCss)) {
+                    let cssValue = styles.getPropertyValue(cssTagName);
+                    if (cssValue && cssValue.length > 0) {
+                        if (cssTagName === "font-size") {
+                            const parentFontSize = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("font-size"));
+                            if (parentFontSize > 0) {
+                                cssValue = (parseInt(cssValue)/parentFontSize).toFixed(1) + "em";
+                            }
+                        }
+                        if (cssTagName === "line-height") {
+                            const fontSize = parseInt(styles.getPropertyValue("font-size"));
+                            const numCssValue = parseInt(cssValue);
+                            if (numCssValue > 0) {
+                                cssValue = (numCssValue / fontSize).toFixed(1);
+                            }
+                        }
+                        tmpNewCss[cssTagName] = cssValue;
+                    }
+                }
 
-			// Reuse CSS - if the same css code was generated for another element, reuse it's class name
+            // Reuse CSS - if the same css code was generated for another element, reuse it's class name
+                let tcss = JSON.stringify(tmpNewCss)
+                let found = false
 
-				const tcss = JSON.stringify(tmpNewCss);
-				let found = false;
-
-				if (Object.keys(tmpIdsToNewCssSTRING).length === 0) {
-					tmpIdsToNewCssSTRING[tmpName] = tcss;
-					tmpIdsToNewCss[tmpName] = tmpNewCss;
-				} else {
-					for (const key in tmpIdsToNewCssSTRING) {
-						if (tmpIdsToNewCssSTRING[key] === tcss) {
-							tmpName = key;
-							found = true;
-							break;
-						}
-					}
-					if (!found) {
-						tmpIdsToNewCssSTRING[tmpName] = tcss;
-						tmpIdsToNewCss[tmpName] = tmpNewCss;
-					}
-				}
-                pre.setAttribute("data-class", tmpName);
+                if (Object.keys(tmpIdsToNewCssSTRING).length === 0) {
+                    tmpIdsToNewCssSTRING[tmpName] = tcss;
+                    tmpIdsToNewCss[tmpName] = tmpNewCss;
+                } else {
+                    for (const key in tmpIdsToNewCssSTRING) {
+                        if (tmpIdsToNewCssSTRING[key] === tcss) {
+                            tmpName = key
+                            found = true
+                            break
+                        }
+                    }
+                    if (!found) {
+                        tmpIdsToNewCssSTRING[tmpName] = tcss;
+                        tmpIdsToNewCss[tmpName] = tmpNewCss;
+                    }
+                }
+                pre.setAttribute('data-class', tmpName);
             }
         });
         return jsonToCss(tmpIdsToNewCss);
@@ -435,89 +312,178 @@ function extractCss(includeStyle, appliedStyles) {
 /////
 
 function promiseAddZip(url, filename) {
-    const promise = new Promise(function (resolve, reject) {
-        JSZipUtils.getBinaryContent(url, function(err, data) {
-            if (err) {
-                // deferred.reject(err); TODO
-                console.log("Error: ", err);
-                resolve();
-            } else {
-                // TODO - move to utils.js
-                if (filename.endsWith("TODO-EXTRACT")) {
-                    let oldFilename = filename
-                    let arr = (new Uint8Array(data)).subarray(0, 4);
-                    let header = "";
-                    for(let i = 0; i < arr.length; i++) {
-                        header += arr[i].toString(16);
-                    }
-                    if (header.startsWith("89504e47")) {
-                        filename = filename.replace("TODO-EXTRACT", "png")
-                    } else if (header.startsWith("47494638")) {
-                        filename = filename.replace("TODO-EXTRACT", "gif")
-                    } else if (header.startsWith("ffd8ff")) {
-                        filename = filename.replace("TODO-EXTRACT", "jpg")
-                    } else {
-                        // ERROR
-                        console.log("Error! Unable to extract the image type!");
-                        resolve();
-                    }
-                    tmpGlobalContent = tmpGlobalContent.replace(oldFilename, filename)
-                }
-
-                extractedImages.push({
-                    filename: filename,
-                    // TODO - must be JSON serializable
-                    data: base64ArrayBuffer(data)
-                });
-                resolve();
+    return fetch(url).then(function (data) {
+        return data.arrayBuffer();
+    }).then(function (data) {
+        // TODO - move to utils.js
+        if (filename.endsWith("TODO-EXTRACT")) {
+            let oldFilename = filename
+            let arr = (new Uint8Array(data)).subarray(0, 4);
+            let header = "";
+            for (let i = 0; i < arr.length; i++) {
+                header += arr[i].toString(16);
             }
+            if (header.startsWith("89504e47")) {
+                filename = filename.replace("TODO-EXTRACT", "png")
+            } else if (header.startsWith("47494638")) {
+                filename = filename.replace("TODO-EXTRACT", "gif")
+            } else if (header.startsWith("ffd8ff")) {
+                filename = filename.replace("TODO-EXTRACT", "jpg")
+            } else {
+                // ERROR
+                return Promise.reject("Error! Unable to extract the image type! " + filename + " " +  url);
+            }
+            htmlContent = htmlContent.replace(oldFilename, filename);
+        }
+        extractedImages.push({
+            filename: filename,
+            // TODO - must be JSON serializable
+            data: base64ArrayBuffer(data)
         });
+        return true;
     });
-    return promise;
 }
 
-chrome.runtime.onMessage.addListener(function ({type, includeStyle, appliedStyles}, sender, sendResponse) {
-    const imgsPromises = [];
-    let pageSrc = "";
-    let tmpContent = "";
+function getAttributes(element) {
+    const attrs = element.attributes;
+    const attrsArray = [];
+    let i = 0;
+    while (i < attrs.length) {
+        attrsArray.push(attrs[i].name);
+        i += 1;
+    }
+    return attrsArray;
+}
+
+function dataClassToClass(root) {
+    root.querySelectorAll("[data-class]").forEach(function (element) {
+        element.className = element.getAttribute("data-class");
+        element.removeAttribute("data-class");
+    });
+}
+
+//remove all attributes but src, class, width, height
+//remove images without or empty src
+function prepareImages(root) {
+    root.querySelectorAll("img").forEach(function (img) {
+        if (!img.hasAttribute("src") || img.getAttribute("src").length === 0) {
+            img.remove();
+            return;
+        }
+        getAttributes(img).forEach(function (attribute) {
+            if (attribute === "width" || attribute === "height" || attribute === "class") {
+                return;
+            }
+            //workaround in order to disable automatic fetching of images
+            if (attribute === "src") {
+                img.setAttribute(
+                    "saveasebook-src",
+                    getImageSrc(img.getAttribute("src"))
+                );
+            }
+            img.removeAttribute(attribute);
+        });
+    });
+}
+
+//remove all attributes but href, class
+function prepareAnchors(root) {
+    root.querySelectorAll("a").forEach(function (a) {
+        getAttributes(a).forEach(function (attribute) {
+            if (attribute === "class") {
+                return;
+            }
+            if (attribute === "href") {
+                a.setAttribute("href", getHref(a.getAttribute("href")));
+                return;
+            }
+            a.removeAttribute(attribute);
+        });
+    });
+}
+
+//remove all attributes but class, alttext, xmlns
+function prepareMaths(root) {
+    root.querySelectorAll("math").forEach(function (math) {
+        getAttributes(math).forEach(function (attribute) {
+            if (attribute === "class" || attribute === "alttext") {
+                return;
+            }
+            math.removeAttribute(attribute);
+        });
+        math.setAttribute("xmlns", "http://www.w3.org/1998/Math/MathML");
+    });
+}
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+    if (!["extract-page", "extract-selection"].includes(request.type)) {
+        return;
+    }
+    let imgsPromises = [];
+    let result = {};
     let styleFile = null;
+    const content = document.createElement("div");
 
     extractIFrames(Array.from(document.querySelectorAll("iframe")));
 
-    if (type === "extract-page") {
-        styleFile = extractCss(includeStyle, appliedStyles);
-        pageSrc = document.getElementsByTagName("body")[0];
-        tmpContent = getContent(pageSrc);
-    } else if (type === "extract-selection") {
-        styleFile = extractCss(includeStyle, appliedStyles);
-        pageSrc = getSelectedNodes();
-        pageSrc.forEach(function (page) {
-            tmpContent += getContent(page);
-        });
-    }
-
-    tmpGlobalContent = tmpContent;
-
-    allImages.forEach(function (tmpImg) {
-        imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
-    });
-
-    Promise.all(imgsPromises).then(function () {
-            const tmpTitle = getPageTitle(document.title);
-            const result = {
-                url: getPageUrl(tmpTitle),
-                title: tmpTitle,
-                styleFileContent: styleFile,
-                styleFileName: "style" + generateRandomNumber() + ".css",
-                images: extractedImages,
-                content: tmpGlobalContent
-            };
-            sendResponse(result);
+    setTimeout(function () {
+        //extract style and add data-class to every relevant node
+        styleFile = extractCss(request.includeStyle, request.appliedStyles);
+        if (request.type === "extract-page") {
+            Array.from(document.body.children).forEach((el) => content.appendChild(el.cloneNode(true)));
+        } else if (request.type === "extract-selection") {
+            getSelectedNodes().forEach((fg) => content.appendChild(fg.cloneNode(true)));
         }
-    ).catch(function (e) {
-        console.log("Error:", e);
-        sendResponse(null);
-    });
+        extractMathMl(content);
+        convertCanvasToImg(content);
+        convertSvgToImg(content);
+        convertPictureToImg(content);
+        dataClassToClass(content);
+        prepareImages(content);
+        prepareAnchors(content);
+        prepareMaths(content);
+        //remove not allowed tags
+        content.querySelectorAll("*").forEach(function (node) {
+            if (!allowedTags.includes(node.tagName.toLowerCase())) {
+                //TODO: remove display:none?
+                node.remove();
+            } else {//TODO: too many if/else, refactoring needed
+                if (!["img", "a", "math"].includes(node.tagName.toLowerCase())) {
+                    getAttributes(node).forEach(function (attribute) {
+                        if (attribute !== "class") {
+                            node.removeAttribute(attribute);
+                        }
+                    });
+                }
+            }
+        });
 
+        //workaround in order to disable automatic fetching of images
+        htmlContent = content.outerHTML.replaceAll(
+            "saveasebook-src",
+            "src"
+        );
+
+        allImages.forEach(function (tmpImg) {
+            imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
+        });
+
+        Promise.all(imgsPromises).then(function () {
+                const tmpTitle = getPageTitle(document.title);
+                result = {
+                    url: getPageUrl(tmpTitle),
+                    title: tmpTitle,
+                    baseUrl: getBaseUrl(),
+                    styleFileContent: styleFile,
+                    styleFileName: "style" + generateRandomNumber() + ".css",
+                    images: extractedImages,
+                    content: htmlContent
+                };
+                sendResponse(result);
+            }
+        ).catch(function (e) {
+            console.log("Error:", e);
+            sendResponse(null);
+        });
+    }, 3000);
     return true;
 });

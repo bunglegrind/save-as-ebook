@@ -233,9 +233,28 @@ function _execRequest(request, sender, sendResponse) {
     }
     if (request.type === 'ImportCustomStyles') {
         chrome.storage.local.set(
-			{'styles': request.customStyles.styles},
-			sendResponse
-		);
+            {'styles': request.customStyles.styles},
+            sendResponse
+        );
+    }
+    if (request.type === 'downloadEBook') {
+        chrome.downloads.download(
+            {
+            'saveAs': true,
+            'url': URL.createObjectURL(
+                request.content, {
+                    type: "application/epub+zip",
+                }),
+            //TODO listent downloads.onChanged
+            //https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download
+            'filename': request.filename.replace(/[<>"*|:]/g, "")
+
+            },
+            function (downloadId) {
+                console.log("done " + downloadId);
+                core.removeWarn();
+            }
+        );
     }
     return true;
 }
