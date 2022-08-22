@@ -1,4 +1,4 @@
-import adapter from "./adapter.js";
+import adapter from "./browser-adapter.js";
 import parseq from "./libs/parseq-extended.js";
 
 const commands = Object.keys(chrome.runtime.getManifest().commands);
@@ -8,16 +8,6 @@ const camelize = s => s.replace(/-./g, x=>x[1].toUpperCase());
 function factory(requestor, value) {
     return function (callback) {
         return requestor(callback, value);
-    }
-}
-
-function requestorize(unary) {
-    return function (callback, value) {
-        try {
-            return callback(unary(value));
-        } catch (e) {
-            return callback(undefined, e);
-        }
     }
 }
 
@@ -36,10 +26,11 @@ function dispatch(type, justAddToBuffer) {
 		{type, justAddToBuffer}
 	);
 }
+
 function menuActions({executeCommand, core}) {
     parseq.parallel([
 		parseq.sequence([
-			requestorize(R.pipe(
+			parseq.requestorize(R.pipe(
 				core.isBusy,
 				R.tap(
 					(x) => document.getElementById("busy").style.display = (
@@ -52,12 +43,12 @@ function menuActions({executeCommand, core}) {
 		]),
 		parseq.sequence([
 			core.getStyles,
-			requestorize(R.prop("styles")),
+			parseq.requestorize(R.prop("styles")),
 			createStyleList,
 		]),
 		parseq.sequence([
 			core.getIncludeStyle,
-			requestorize(R.pipe(
+			parseq.requestorize(R.pipe(
 				R.prop("includeStyle"),
 				R.tap((x) => document.getElementById("includeStyleCheck").checked = x),
 			))
@@ -65,7 +56,7 @@ function menuActions({executeCommand, core}) {
 		// get all shortcuts and display them in the menuTitle
 		parseq.sequence([
 			adapter.getAllCommands,
-			requestorize(R.pipe(
+			parseq.requestorize(R.pipe(
 				R.filter((x) => commands.includes(x.name)),
 				R.map(R.props(["name", "shortcut"])),
 				R.tap(R.forEach(
@@ -95,14 +86,14 @@ function createStyleList(callback, styles) {
 
     parseq.sequence([
         adapter.tabQuery,
-        requestorize(R.head),
+        parseq.requestorize(R.head),
         function (callback, tab) {
             const currentUrl = tab.url.replace(/(http[s]?:\/\/|www\.)/i, '').toLowerCase();
             // if multiple URL regexes match, select the longest one
             allMatchingStyles = allMatchingStyles.filter((style) => style.regexp && style.regexp.test(currentUrl));
 
             const index = R.pipe(
-                sort((a, b) => b.length - a.length),
+                R.sort((a, b) => b.length - a.length),
                 R.head,
                 R.prop("index")
             )(allMatchingStyles);
@@ -156,7 +147,7 @@ document.getElementById('includeStyleCheck').onclick = function () {
 	);
 }
 
-const firstTabId = requestorize(R.pipe(R.head, R.prop("id")));
+const firstTabId = parseq.requestorize(R.pipe(R.head, R.prop("id")));
 
 document.getElementById("editStyles").onclick = function () {
     if (document.getElementById('cssEditor-Modal')) {

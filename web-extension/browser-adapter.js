@@ -1,7 +1,12 @@
 function tabQuery(callback, props) {
     return chrome.tabs.query(
         props,
-        (tab) => callback(tab)
+        function (tab) {
+            if (chrome.runtime.lastError) {
+                return callback(undefined, `tabQuery failed: ${chrome.runtime.lastError}`);
+            }
+            return callback(tab);
+        }
     );
 }
 
@@ -48,15 +53,15 @@ function sendRuntimeMessage(callback, message) {
 }
 
 
-function getFromStorage(key, defaultValue) {
-    return function getFromStorageRequestor(callback) {
+function fromStorage(key, defaultValue) {
+    return function fromStorageRequestor(callback) {
         return chrome.storage.local.get(
             key,
             function (data) {
                 //Not clear in the docs...
                 //https://developer.chrome.com/docs/extensions/reference/storage/
                 if (chrome.runtime.lastError) {
-                    return callback(undefined, `getFromStorage failed: key - ${key} ${chrome.runtime.lastError}`);
+                    return callback(undefined, `fromStorage failed: key - ${key} ${chrome.runtime.lastError}`);
                 }
                 const toR = Object.create(null);
                 toR[key] = data[key] ?? defaultValue;
@@ -67,19 +72,19 @@ function getFromStorage(key, defaultValue) {
 }
 
 //WARNING: the callback is missing from everywhere in the code!
-function setStorage(key) {
-    return function setStorageRequestor(callback, req) {
+function toStorage(key) {
+    return function toStorageRequestor(callback, req) {
         const obj = Object.create(null);
         obj[key] = req[key];
         return chrome.storage.local.set(obj, function () {
             if (typeof callback === "function") {
                 if (chrome.runtime.lastError) {
-                    return callback(undefined, `setStorage failed: key - ${key} ${chrome.runtime.lastError}`);
+                    return callback(undefined, `toStorage failed: key - ${key} ${chrome.runtime.lastError}`);
                 }
                 return callback("success");
             }
         });
-    }
+    };
 }
 
 function removeFromStorage(key) {
@@ -90,7 +95,7 @@ function removeFromStorage(key) {
             }
             return callback("success");
         });
-    }
+    };
 }
 
 function getAllCommands(callback) {
@@ -101,8 +106,8 @@ export default Object.freeze({
     tabQuery,
     sendMessage,
     sendRuntimeMessage,
-    getFromStorage,
-    setStorage,
+    fromStorage,
+    toStorage,
     removeFromStorage,
     getAllCommands,
     insertCss,

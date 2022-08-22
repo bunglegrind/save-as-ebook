@@ -2,29 +2,28 @@ import defaultStyles from "./defaultStyles.js";
 import warning from "./warning.js";
 import parseq from "./libs/parseq-extended.js";
 
-import chr from "./adapter.js";
+import aaa from "./browser-adapter.js";
 
 const {
-    tabQuery,
-    sendMessage,
-    getFromStorage,
-    setStorage,
-    removeFromStorage
-} = chr;
-
+        tabQuery,
+        sendMessage,
+        fromStorage,
+        toStorage,
+        removeFromStorage
+} = aaa;
 const warn = warning(20000);
 
-const getStyles = getFromStorage("styles", defaultStyles);
-const getIncludeStyle = getFromStorage("includeStyle", false);
-const getBook = getFromStorage("allPages", []);
-const getTitle = getFromStorage("title", "eBook");
-const getCurrentStyle = getFromStorage("currentStyle", 0);
+const getStyles = fromStorage("styles", defaultStyles);
+const getIncludeStyle = fromStorage("includeStyle", false);
+const getBook = fromStorage("allPages", []);
+const getTitle = fromStorage("title", "eBook");
+const getCurrentStyle = fromStorage("currentStyle", 0);
 
-const setCurrentStyle = setStorage("currentStyle");
-const setIncludeStyle = setStorage("includeStyle");
-const setBook = setStorage("allPages");
-const setTitle = setStorage("title");
-const setStyles = setStorage("styles");
+const setCurrentStyle = toStorage("currentStyle");
+const setIncludeStyle = toStorage("includeStyle");
+const setBook = toStorage("allPages");
+const setTitle = toStorage("title");
+const setStyles = toStorage("styles");
 
 const clearBook = parseq.parallel([
     removeFromStorage("allPages"),
