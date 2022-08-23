@@ -280,14 +280,14 @@ function extractCss(includeStyle, appliedStyles) {
                             tmpName = key
                             found = true
                             break
-                        }
+                            }
                     }
                     if (!found) {
                         tmpIdsToNewCssSTRING[tmpName] = tcss;
                         tmpIdsToNewCss[tmpName] = tmpNewCss;
                     }
                 }
-                pre.setAttribute('data-class', tmpName);
+                pre.setAttribute("data-class", tmpName);
             }
         });
         return jsonToCss(tmpIdsToNewCss);

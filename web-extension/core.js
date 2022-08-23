@@ -2,15 +2,15 @@ import defaultStyles from "./defaultStyles.js";
 import warning from "./warning.js";
 import parseq from "./libs/parseq-extended.js";
 
-import aaa from "./browser-adapter.js";
+import webext_adapter from "./browser-adapter.js";
 
 const {
-        tabQuery,
+        getTabs,
         sendMessage,
         fromStorage,
         toStorage,
         removeFromStorage
-} = aaa;
+} = webext_adapter;
 const warn = warning(20000);
 
 const getStyles = fromStorage("styles", defaultStyles);
@@ -56,7 +56,7 @@ function savePage() {//TODO: action and tabId may be a closure for the following
 
     parseq.sequence([
         parseq.parallel([
-            tabQuery,
+            getTabs,
             getIncludeStyle,
             getStyles,//We may optimize checking if custom styles are needed before asking all the styles
             clearBook//WARNING Deletes the book
@@ -119,10 +119,9 @@ function savePage() {//TODO: action and tabId may be a closure for the following
         }
         appliedStyles.push(currentStyle);
 
-        chrome.tabs.insertCSS(
-            tabId,
-            {code: currentStyle.style},
-            () => callback(value)
+        webext_adapter.insertCss(tabId)(
+            () => callback(value),
+            {code: currentStyle.style}
         );
 
     }

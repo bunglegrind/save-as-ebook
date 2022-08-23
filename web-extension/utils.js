@@ -209,8 +209,8 @@ function removeEndingSlash(inputStr) {
 
 // https://gist.github.com/jonleighton/958841
 function base64ArrayBuffer(arrayBuffer) {
-    let base64 = '';
-    let encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    let base64 = "";
+    let encodings = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     let bytes = new Uint8Array(arrayBuffer);
     let byteLength = bytes.byteLength;
@@ -233,13 +233,13 @@ function base64ArrayBuffer(arrayBuffer) {
         chunk = bytes[mainLength];
         a = (chunk & 252) >> 2;
         b = (chunk & 3) << 4;
-        base64 += encodings[a] + encodings[b] + '==';
+        base64 += encodings[a] + encodings[b] + "==";
     } else if (byteRemainder === 2) {
         chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1];
         a = (chunk & 64512) >> 10;
         b = (chunk & 1008) >> 4;
         c = (chunk & 15) << 2;
-        base64 += encodings[a] + encodings[b] + encodings[c] + '=';
+        base64 += encodings[a] + encodings[b] + encodings[c] + "=";
     }
 
     return base64;
@@ -253,24 +253,24 @@ function decodeHtmlEntity(str) {
 }
 
 function isBase64Img(srcTxt) {
-    return srcTxt.indexOf('data:image/') === 0 && srcTxt.indexOf(';base64,') > 0;
+    return srcTxt.indexOf("data:image/") === 0 && srcTxt.indexOf(";base64,") > 0;
 }
 
 function getBase64ImgType(srcTxt) {
     try {
-        return srcTxt.split(';')[0].split('/')[1];
+        return srcTxt.split(";")[0].split("/")[1];
     } catch (e) {
-        console.log('Error:', e);
+        console.log("Error:", e);
         return '';
     }
 }
 
 function getBase64ImgData(srcTxt) {
     try {
-        return srcTxt.split(';base64,')[1];
+        return srcTxt.split(";base64,")[1];
     } catch (e) {
-        console.log('Error:', e);
-        return '';
+        console.log("Error:", e);
+        return "";
     }
 }
 

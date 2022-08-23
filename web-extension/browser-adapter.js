@@ -1,11 +1,11 @@
-function tabQuery(callback, props) {
+function getTabs(callback, props) {
     return chrome.tabs.query(
         props,
-        function (tab) {
+        function (tabs) {
             if (chrome.runtime.lastError) {
-                return callback(undefined, `tabQuery failed: ${chrome.runtime.lastError}`);
+                return callback(undefined, `getTabs failed: ${chrome.runtime.lastError}`);
             }
-            return callback(tab);
+            return callback(tabs);
         }
     );
 }
@@ -18,7 +18,7 @@ function insertCss(tabId) {
             }
             return callback("success");
         });
-    }
+    };
 }
 
 function executeScript(tabId) {
@@ -102,8 +102,12 @@ function getAllCommands(callback) {
     return chrome.commands.getAll(callback);
 }
 
+function geti18nMessage(name) {
+    return chrome.i18n.getMessage(name);
+}
+
 export default Object.freeze({
-    tabQuery,
+    getTabs,
     sendMessage,
     sendRuntimeMessage,
     fromStorage,
@@ -111,5 +115,6 @@ export default Object.freeze({
     removeFromStorage,
     getAllCommands,
     insertCss,
-    executeScript
+    executeScript,
+    geti18nMessage
 });

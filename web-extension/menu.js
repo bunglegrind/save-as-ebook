@@ -85,7 +85,7 @@ function createStyleList(callback, styles) {
     });
 
     parseq.sequence([
-        adapter.tabQuery,
+        adapter.getTabs,
         parseq.requestorize(R.head),
         function (callback, tab) {
             const currentUrl = tab.url.replace(/(http[s]?:\/\/|www\.)/i, '').toLowerCase();
@@ -155,7 +155,7 @@ document.getElementById("editStyles").onclick = function () {
     }
 //Build the style editor...
     parseq.sequence([
-        adapter.tabQuery,
+        adapter.getTabs,
         firstTabId,
         function injectScripts(callback, tabId) {
             return parseq.parallel([
@@ -182,13 +182,11 @@ document.getElementById("editChapters").onclick = function () {
 	    return;
 	}
 	parseq.sequence([
-	    adapter.tabQuery,
+	    adapter.getTabs,
 	    firstTabId,
 	    function injectScripts(callback, tabId) {
 		return parseq.parallel([
 		    factory(adapter.insertCss(tabId), {file: "/chapterEditor.css"}),
-		    factory(adapter.executeScript(tabId), {file: "./libs/jquery.js"}),
-		    factory(adapter.executeScript(tabId), {file: "./libs/jquery-sortable.js"}),
 		    factory(adapter.executeScript(tabId), {file: "./chapterEditor.js"})
 		])(callback, tabId);
 	    },
