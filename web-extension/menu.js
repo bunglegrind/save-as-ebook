@@ -1,15 +1,7 @@
 import adapter from "./browser-adapter.js";
 import parseq from "./libs/parseq-extended.js";
 
-const commands = Object.keys(chrome.runtime.getManifest().commands);
-
-const camelize = s => s.replace(/-./g, x=>x[1].toUpperCase());
-
-function factory(requestor, value) {
-    return function (callback) {
-        return requestor(callback, value);
-    }
-}
+const camelize = s => s.replace(/-./g, x => x[1].toUpperCase());
 
 function dispatch(type, justAddToBuffer) {
     console.debug("dispatch: " + type);
@@ -27,7 +19,12 @@ function dispatch(type, justAddToBuffer) {
 	);
 }
 
-function menuActions({executeCommand, core}) {
+function menuActions(value, reason) {
+    if (value === undefined) {
+        return console.log(reason);
+    }
+    const {executeCommand, core} = value;
+
     parseq.parallel([
 		parseq.sequence([
 			parseq.requestorize(R.pipe(
@@ -57,7 +54,7 @@ function menuActions({executeCommand, core}) {
 		parseq.sequence([
 			adapter.getAllCommands,
 			parseq.requestorize(R.pipe(
-				R.filter((x) => commands.includes(x.name)),
+				R.filter((x) => adapter.commands.includes(x.name)),
 				R.map(R.props(["name", "shortcut"])),
 				R.tap(R.forEach(
 					(x) => document.getElementById(x[0] + "-shortcut").textContent = x[1]
@@ -111,25 +108,25 @@ function createStyleList(callback, styles) {
 }
 //create menu buttons
 document.getElementById("buttons").innerHTML = (
-    commands.slice(0, 2).map(makeButton).join("\n")
+    adapter.commands.slice(0, 2).map(makeButton).join("\n")
     +  "<hr />"
-    + commands.slice(2).map(makeButton).join("\n")
+    + adapter.commands.slice(2).map(makeButton).join("\n")
 );
 
 // create menu labels
-document.getElementById('menuTitle').innerHTML = chrome.i18n.getMessage('extName');
-document.getElementById('includeStyle').innerHTML = chrome.i18n.getMessage('includeStyle');
-document.getElementById('editStyles').innerHTML = chrome.i18n.getMessage('editStyles');
-//commands.forEach(function (x) {
-//    document.querySelector(`button#${cmd} label`).innerHTML = chrome.i18n.getMessage(cmd);
+document.getElementById('menuTitle').innerHTML = adapter.local_text('extName');
+document.getElementById('includeStyle').innerHTML = adapter.local_text('includeStyle');
+document.getElementById('editStyles').innerHTML = adapter.local_text('editStyles');
+//adapter.commands.forEach(function (x) {
+//    document.querySelector(`button#${cmd} label`).innerHTML = adapter.local_text(cmd);
 //});
 
-document.querySelector("button#save-page span").innerHTML = chrome.i18n.getMessage('savePage');
-document.querySelector("button#save-selection span").innerHTML = chrome.i18n.getMessage('saveSelection');
-document.querySelector("button#add-page span").innerHTML = chrome.i18n.getMessage('pageChapter');
-document.querySelector("button#add-selection span").innerHTML = chrome.i18n.getMessage('selectionChapter');
-document.getElementById('editChapters').innerHTML = chrome.i18n.getMessage('editChapters');
-document.getElementById('waitMessage').innerHTML = chrome.i18n.getMessage('waitMessage');
+document.querySelector("button#save-page span").innerHTML = adapter.local_text('savePage');
+document.querySelector("button#save-selection span").innerHTML = adapter.local_text('saveSelection');
+document.querySelector("button#add-page span").innerHTML = adapter.local_text('pageChapter');
+document.querySelector("button#add-selection span").innerHTML = adapter.local_text('selectionChapter');
+document.getElementById('editChapters').innerHTML = adapter.local_text('editChapters');
+document.getElementById('waitMessage').innerHTML = adapter.local_text('waitMessage');
 
 document.getElementById('includeStyleCheck').onclick = function () {
     let includeStyleCheck = document.getElementById('includeStyleCheck');
@@ -159,8 +156,8 @@ document.getElementById("editStyles").onclick = function () {
         firstTabId,
         function injectScripts(callback, tabId) {
             return parseq.parallel([
-                factory(adapter.insertCss(tabId), {file: "/cssEditor.css"}),
-                factory(adapter.executeScript(tabId), {file: "/cssEditor.js"})
+                parseq.wrap_requestor(adapter.insertCss(tabId))({file: "/cssEditor.css"}),
+                parseq.wrap_requestor(adapter.executeScript(tabId))({file: "/cssEditor.js"})
             ])(callback, tabId);
         },
         function (callback, value) {
@@ -185,14 +182,14 @@ document.getElementById("editChapters").onclick = function () {
 	    adapter.getTabs,
 	    firstTabId,
 	    function injectScripts(callback, tabId) {
-		return parseq.parallel([
-		    factory(adapter.insertCss(tabId), {file: "/chapterEditor.css"}),
-		    factory(adapter.executeScript(tabId), {file: "./chapterEditor.js"})
-		])(callback, tabId);
+            return parseq.parallel([
+                parseq.wrap_requestor(adapter.insertCss(tabId), {file: "/chapterEditor.css"}),
+                parseq.wrap_requestor(adapter.executeScript(tabId), {file: "./chapterEditor.js"})
+            ])(callback, tabId);
 	    },
 	    function (callback, value) {
-		window.close();//closes menu
-		return callback(value);
+            window.close();//closes menu
+            return callback(value);
 	    }
 	])(function (value, reason) {
 	    if (value === undefined) {
@@ -212,7 +209,7 @@ function makeButton(cmd) {
 	    </button>`;
     }
 
-    commands.forEach(function (cmd) {
+    adapter.commands.forEach(function (cmd) {
 	document.getElementById(cmd).onclick = function () {
 	    executeCommand(cmd);
 	    window.close();
@@ -220,4 +217,4 @@ function makeButton(cmd) {
     });
 }
 
-chrome.runtime.getBackgroundPage(menuActions);
+adapter.get_background_page_requestor(menuActions);

@@ -1,3 +1,5 @@
+import parseq from "./libs/parseq-extended.js";
+
 function getTabs(callback, props) {
     return chrome.tabs.query(
         props,
@@ -102,8 +104,10 @@ function getAllCommands(callback) {
     return chrome.commands.getAll(callback);
 }
 
-function geti18nMessage(name) {
-    return chrome.i18n.getMessage(name);
+function get_background_page_requestor(callback) {
+    return chrome.runtime.getBackgroundPage(callback, function (err) {
+        return callback(undefined, err);
+    });
 }
 
 export default Object.freeze({
@@ -116,5 +120,9 @@ export default Object.freeze({
     getAllCommands,
     insertCss,
     executeScript,
-    geti18nMessage
+    local_text: (id) => chrome.i18n.getMessage(id),
+    get_background_page_requestor: (cb) => parseq.promise_requestorize(
+        chrome.runtime.getBackgroundPage(cb)
+    ),
+    commands: Object.keys(chrome.runtime.getManifest().commands)
 });

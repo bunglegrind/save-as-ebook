@@ -2,7 +2,7 @@ import defaultStyles from "./defaultStyles.js";
 import warning from "./warning.js";
 import parseq from "./libs/parseq-extended.js";
 
-import webext_adapter from "./browser-adapter.js";
+import adapter from "./browser-adapter.js";
 
 const {
         getTabs,
@@ -10,7 +10,7 @@ const {
         fromStorage,
         toStorage,
         removeFromStorage
-} = webext_adapter;
+} = adapter;
 const warn = warning(20000);
 
 const getStyles = fromStorage("styles", defaultStyles);
@@ -119,7 +119,7 @@ function savePage() {//TODO: action and tabId may be a closure for the following
         }
         appliedStyles.push(currentStyle);
 
-        webext_adapter.insertCss(tabId)(
+        adapter.insertCss(tabId)(
             () => callback(value),
             {code: currentStyle.style}
         );
