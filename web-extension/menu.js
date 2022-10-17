@@ -1,21 +1,20 @@
 import adapter from "./browser-adapter.js";
 import parseq from "./libs/parseq-extended.js";
 
-const camelize = s => s.replace(/-./g, x => x[1].toUpperCase());
+const camelize = (s) => s.replace(/-./g, x => x[1].toUpperCase());
 
 function dispatch(type, justAddToBuffer) {
     console.debug("dispatch: " + type);
     document.getElementById('busy').style.display = 'block';
     
     if (!core.isBusy()) {
-		core[type](justAddToBuffer,  )
+		core[type](justAddToBuffer);
     }
 
-    adapter.sendRuntimeMessage(
+    adapter.sendRuntimeMessage({type, justAddToBuffer})(
 		function (value, reason) {
 			document.getElementById('busy').style.display = 'none';
-		},
-		{type, justAddToBuffer}
+		}
 	);
 }
 
@@ -96,10 +95,10 @@ function createStyleList(callback, styles) {
             )(allMatchingStyles);
 
             if (index !== undefined) {
-                return adapter.sendRuntimeMessage(callback, {
+                return adapter.sendRuntimeMessage({
                     type: "set current style",
                     currentStyle: styles[index]
-                });
+                })(callback);
             }
 
             return callback("success");
@@ -130,18 +129,15 @@ document.getElementById('waitMessage').innerHTML = adapter.local_text('waitMessa
 
 document.getElementById('includeStyleCheck').onclick = function () {
     let includeStyleCheck = document.getElementById('includeStyleCheck');
-    adapter.sendRuntimeMessage(
-		function callback(value, reason) {
+    adapter.sendRuntimeMessage({
+            type: "set include style",
+            includeStyle: includeStyleCheck.checked
+        })(function callback(value, reason) {
             if (value === undefined) {
                 return console.log("reason: menu-set include style " + reason);
             }
             return console.log("value: menu-set include style " + value);
-        },
-        {
-            type: "set include style",
-            includeStyle: includeStyleCheck.checked
-        }
-	);
+        });
 }
 
 const firstTabId = parseq.requestorize(R.pipe(R.head, R.prop("id")));

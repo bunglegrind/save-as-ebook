@@ -226,7 +226,7 @@ function isVisible(elem) {
     );
 }
 
-function extractCss(includeStyle, appliedStyles) {
+function extractCss(includeStyle) {
     if (includeStyle) {
         document.querySelectorAll("body *").forEach(function (pre, i) {
             if (
@@ -293,18 +293,12 @@ function extractCss(includeStyle, appliedStyles) {
         return jsonToCss(tmpIdsToNewCss);
     } else {
         // remove hidden elements when style is not included
-        document.querySelectorAll("body *").forEach(function ( pre) {
+        document.querySelectorAll("body *").forEach(function (pre) {
             if (!isVisible(pre)) {
                 pre.outerHTML = "";
             }
         });
-        let mergedCss = "";
-        if (appliedStyles && appliedStyles.length > 0) {
-            for (let i = 0; i < appliedStyles.length; i++) {
-                mergedCss += appliedStyles[i].style;
-            }
-            return mergedCss;
-        }
+        return "";
     }
     return null;
 }
@@ -415,7 +409,7 @@ function prepareMaths(root) {
     });
 }
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    if (!["extract-page", "extract-selection"].includes(request.type)) {
+    if (!["page", "selection"].includes(request.type)) {
         return;
     }
     let imgsPromises = [];
@@ -427,10 +421,10 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     setTimeout(function () {
         //extract style and add data-class to every relevant node
-        styleFile = extractCss(request.includeStyle, request.appliedStyles);
-        if (request.type === "extract-page") {
+        styleFile = extractCss(request.includeStyle);
+        if (request.type === "page") {
             Array.from(document.body.children).forEach((el) => content.appendChild(el.cloneNode(true)));
-        } else if (request.type === "extract-selection") {
+        } else if (request.type === "selection") {
             getSelectedNodes().forEach((fg) => content.appendChild(fg.cloneNode(true)));
         }
         extractMathMl(content);
@@ -482,7 +476,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             }
         ).catch(function (e) {
             console.log("Error:", e);
-            sendResponse(null);
+            sendResponse(undefined, e);
         });
     }, 3000);
     return true;

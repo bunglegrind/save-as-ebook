@@ -6,7 +6,6 @@ import adapter from "./browser-adapter.js";
 
 const {
         getTabs,
-        sendMessage,
         fromStorage,
         toStorage,
         removeFromStorage
@@ -30,29 +29,11 @@ const clearBook = parseq.parallel([
     removeFromStorage("title")
 ]);
 
-function tap(f) {
-	return function (v) {
-		f(v);
-		return v;
-	}
-}
-
-function requestorize(unary) {
-	return function (callback, value) {
-		try {
-			return callback(unary(value));
-		} catch (e) {
-			callback (undefined, e);
-		}
-	}
-}
-
-const printValue = requestorize(tap(console.log));
 
 function savePage() {//TODO: action and tabId may be a closure for the following requestors
 
 
-    let sendToTab, tabId;
+    let tabId;
 
     parseq.sequence([
         parseq.parallel([
@@ -77,7 +58,6 @@ function savePage() {//TODO: action and tabId may be a closure for the following
 
     function prepareStyles(callback, value) {
         const [tab, includeStyle, {styles}] = value;
-        sendToTab = sendMessage(tab[0].id);
         tabId = tab[0].id;
         const appliedStyles = [];
 
@@ -132,14 +112,13 @@ function savePage() {//TODO: action and tabId may be a closure for the following
         const justAddToBuffer = false;
         const type = "extract-page";
 
-        return sendToTab(
-            callback,
-            {
+        return adapter.sendMessage();
+
+        adapter.sendMessage({
                 type,
                  includeStyle,
                  appliedStyles
-            });
-
+            })(callback, tabId);
     }
 
     function generateOutcome(callback, response) {
@@ -151,7 +130,7 @@ function savePage() {//TODO: action and tabId may be a closure for the following
         } else {
             message = {"shortcut": "build-ebook", response: [response]};
         }
-        return sendToTab(callback, message);
+        return adapter.sendMessage(message)(callback, tabId);
     }
 }
 

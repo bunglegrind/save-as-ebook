@@ -1,126 +1,173 @@
 import core from "./core.js";
+import parseq from "./libs/parseq-extended.js";
+import adapter from "./browser-adapter.js";
+import * as R from "./libs/ramda.min.js";
 
+
+const currentTab = {
+    currentWindow: true,
+    active: true
+};
 //Listener for keyboard shortcuts
-chrome.commands.onCommand.addListener(
-    (command) => executeCommand({type: command})
-);
+adapter.listenForCommands(executeCommand);
 
 //Listener for incoming messages
-chrome.runtime.onMessage.addListener(_execRequest);
-
+adapter.listenForMessages(_execRequest);
 
 //convert shortcuts to messages
 function executeCommand(command) {
+    const action = commandToAction(command);
 
-    if (core.isBusy()) {
-        chrome.tabs.query({
-                currentWindow: true,
-                active: true
-            },
-            (tab) => chrome.tabs.sendMessage(
-                tab[0].id,
-                {
-                    "alert": (
-                        "Work in progress! Please wait until the current " +
-                        "eBook is generated!"
-                    )
-                },
-                (r) => console.log(r)
-            )
+    parseq.sequence([
+        adapter.getTabs,
+        parseq.requestorize(R.pipe(R.head, R.prop("id"))),
+        (
+            core.isBusy()
+            ? adapter.sendMessage({
+                "alert": (
+                    "Work in progress! Please wait until the current " +
+                    "eBook is generated!"
+                )
+            }),
+            : parseq.sequence([
+//WARNING: when saving page, the book buffer is reset
+                // if (!insertInBook) {
+                //     _execRequest({type: "clear book"});
+                // }
+                parseq.requestorize(R.tap(core.setWarn)),
+                parseq.parallel_object({
+                    includeStyle: core.getIncludeStyle,
+                    tab: parseq.do_nothing
+                }),
+                parseq.when(
+                    ({includeStyle}) => includeStyle,
+                    parseq.parallel_object([
+                        tab: parseq.requestorize(R.prop("tab")),
+                        includeStyle: parseq.requestorize(R.prop("includeStyle")),
+                        css: parseq.sequence([
+                            parseq.parallel_object({
+                                styles: core.getStyles,
+                                tab: parseq.requestorize(R.prop("tab"))
+                            }),
+                            parseq.requestorize(extractCustomStyle),
+                            (cb, {tab, style}) => adapter.insertCss(
+                                {code: style}
+                            )(cb, tab)
+                        ])
+                    ])
+                send(action),
+            ])
         )
-    }
+    ])(my_callback, currentTab);
 
-    core.setWarn();
 
-    if (command.type === "save-page") {
+
+    if (command === "save-page") {
         core.savePage();
         // dispatch("extract-page", false);
-    } else if (command.type === "save-selection") {
+    } else if (command === "save-selection") {
         dispatch("extract-selection", false);
-    } else if (command.type === "add-page") {
+    } else if (command === "add-page") {
         dispatch("extract-page", true);
-    } else if (command.type === "add-selection") {
+    } else if (command === "add-selection") {
         dispatch("extract-selection", true);
     }
 }
 
-function dispatch(action, insertInBook) {
-    //WARNING: when saving page, the book buffer is reset
-    if (!insertInBook) {
-        _execRequest({type: "clear book"});
+function commandToAction(command) {
+    if (command === "save-page") {
+        return {
+            subject: "page",
+            inBuffer: false
+        };
     }
-
-    chrome.tabs.query({
-        currentWindow: true,
-        active: true
-    }, (tab) => {
-
-        core.getIncludeStyle(
-            function (result) {
-                prepareStyles(
-                    tab,
-                    result.includeStyle,
-                    function (tmpAppliedStyles) {
-                        applyAction(
-                            tab,
-                            action,
-                            insertInBook,
-                            isIncludeStyle,
-                            tmpAppliedStyles,
-                            () => alert("done")
-                        )
-                    }
-                )
-            }
-        )
-    });
+    if (command === "add-page") {
+        return {
+            subject: "page",
+            inBuffer: true
+        };
+    }
+    if (command === "save-selection") {
+        return {
+            subject: "selection",
+            inBuffer: false
+        };
+    }
+    if (command === "add-selection") {
+        return {
+            subject: "selection",
+            inBuffer: true
+        };
+    }
+    throw new Error("Command unrecognized");
 }
 
-function prepareStyles(tab, includeStyle, callback) {
-    const appliedStyles = [];
+function extractCustomStyle({tab, styles}) {
+    const currentUrl = tab[0].url.replace(/(http[s]?:\/\/|www\.)/i, "").toLowerCase();
 
-    if (!includeStyle) {
-        return callback(appliedStyles);
-    }
-    core.getStyles(
-        function (data) {
-            const styles = data.styles;
-            const currentUrl = tab[0].url.replace(
-                /(http[s]?:\/\/|www\.)/i,
-                ""
-            ).toLowerCase();
+    //We can write also as filter + map
+    const allMatchingStyles = styles.reduce(function (acc, style, i) {
+        const styleUrlRegex = new RegExp(style.url, "i");
 
-            //We can write also as filter + map
-            const allMatchingStyles = styles.reduce(function (acc, style, i) {
-                const styleUrlRegex = new RegExp(style.url, "i");
-
-                if (styleUrlRegex && styleUrlRegex.test(currentUrl)) {
-                    return acc.concat({
-                        index: i,
-                        length: style.url.length
-                    });
-                }
-                return acc;
-            }, []);
-
-            allMatchingStyles.sort((a, b) => b.length - a.length);
-            const selStyle = allMatchingStyles.length > 0 ? allMatchingStyles[0] : false;
-
-            if (!selStyle) {
-                return callback(appliedStyles);
-            }
-
-            const currentStyle = styles[selStyle.index];
-
-            if (!currentStyle || !currentStyle.style) {
-                return callback(appliedStyles);
-            }
-
-            chrome.tabs.insertCSS(tab[0].id, {code: currentStyle.style}, () => {
-                appliedStyles.push(currentStyle);
-                return callback(appliedStyles)
+        if (styleUrlRegex && styleUrlRegex.test(currentUrl)) {
+            return acc.concat({
+                index: i,
+                length: style.url.length
             });
-        });
+        }
+        return acc;
+    }, []);
+
+    allMatchingStyles.sort((a, b) => b.length - a.length);
+    return {
+        tab,
+        style: (
+            allMatchingStyles.length > 0
+            ? styles[allMatchingStyles[0].index].style
+            : ""
+        )
+    };
+} 
+
+function send({subject}) {
+    return function (callback, {includeStyle, tab}) {
+        return adapter.sendMessage({
+            type: subject,
+            includeStyle,
+        })(callback, tab);
+    };
+}
+
+const xxx = (response) => {
+        if (!response) {
+            return chrome.tabs.sendMessage(tab, {"alert": "Save as eBook does not work on this web site!"}, () => {
+            });
+        }
+
+        if (response.content.trim() === "") {
+            if (justAddToBuffer) {
+                chrome.tabs.sendMessage(tab, {"alert": "Cannot add an empty selection as chapter!"}, () => {
+                });
+            } else {
+                chrome.tabs.sendMessage(tab, {"alert": "Cannot generate the eBook from an empty selection!"}, () => {
+                });
+            }
+            return;
+        }
+        if (!justAddToBuffer) {
+            chrome.tabs.sendMessage(tab, {"shortcut": "build-ebook", response: [response]});
+        } else {
+            core.getBook(function (data) {
+                data.allPages.push(response);
+                core.setBook(function () {
+                    chrome.tabs.sendMessage(
+                        tab[0].id,
+                        {"alert": "Page or selection added as chapter!"}
+                    );
+                }, {"allPages": data.allPages});
+            })
+        }
+    core.removeWarn();
 }
 
 function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles) {
@@ -210,9 +257,13 @@ function _execRequest(request, sender, sendResponse) {
     if (request.type === "is busy?") {
         sendResponse({isBusy: core.isBusy()});
     }
-    if (request.type === "save-page" || request.type === "save-selection" ||
-        request.type === "add-page" || request.type === "add-selection") {
-        executeCommand({type: request.type});
+    if ([
+        "save-page",
+        "save-selection",
+        "add-page",
+        "add-selection"
+    ].includes(request.type)) {
+        executeCommand(request.type);
     }
     if (request.type === "done") {
         core.removeWarn();
@@ -245,8 +296,8 @@ function _execRequest(request, sender, sendResponse) {
                 request.content, {
                     type: "application/epub+zip",
                 }),
-            //TODO listent downloads.onChanged
-            //https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download
+//TODO listent downloads.onChanged
+//https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download
             'filename': request.filename.replace(/[<>"*|:]/g, "")
 
             },

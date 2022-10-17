@@ -1,104 +1,3 @@
-function setIncludeStyle(includeStyle) {
-    chrome.runtime.sendMessage({
-        type: "set include style",
-        includeStyle: includeStyle
-    }, function(response) {
-    });
-}
-
-function getIncludeStyle(callback) {
-    chrome.runtime.sendMessage({
-        type: "get include style"
-    }, function(response) {
-        callback(response.includeStyle);
-    });
-}
-
-function setCurrentStyle(currentStyle) {
-    chrome.runtime.sendMessage({
-        type: "set current style",
-        currentStyle: currentStyle
-    }, function(response) {
-    });
-}
-
-function getCurrentStyle(callback) {
-    chrome.runtime.sendMessage({
-        type: "get current style"
-    }, function(response) {
-        callback(response.currentStyle);
-    });
-}
-
-function getStyles(callback) {
-    chrome.runtime.sendMessage({
-        type: "get styles"
-    }, function(response) {
-        callback(response.styles);
-    });
-}
-
-function setStyles(styles) {
-    chrome.runtime.sendMessage({
-        type: "set styles",
-        styles: styles
-    }, function(response) {
-    });
-}
-
-function getEbookTitle(callback) {
-    chrome.runtime.sendMessage({
-        type: "get title"
-    }, function(response) {
-        callback(response.title);
-    });
-}
-
-function saveEbookTitle(title) {
-    chrome.runtime.sendMessage({
-        type: "set title",
-        title: title
-    }, function(response) {
-    });
-}
-
-function getEbookPages(callback) {
-    chrome.runtime.sendMessage({
-        type: "get"
-    }, function(response) {
-        callback(response.allPages);
-    });
-}
-
-function saveEbookPages(pages) {
-    chrome.runtime.sendMessage({
-        type: "set",
-        pages: pages
-    }, function(response) {});
-}
-
-function removeEbook() {
-    chrome.runtime.sendMessage({
-        type: "clear book"
-    }, function(response) {});
-}
-
-function checkIfBusy(callback) {
-    chrome.runtime.sendMessage({
-        type: "is busy?"
-    }, function(response) {
-        callback(response);
-    });
-}
-
-function setIsBusy(isBusy) {
-    chrome.runtime.sendMessage({
-        type: "set is busy",
-        isBusy: isBusy
-    }, function(response) {});
-}
-
-/////
 function getBaseUrl() {
     const base = document.querySelector("base");
     if (base) {
@@ -359,7 +258,7 @@ function getPageUrl(url) {
 
 function getPageTitle(title) {
     if (title.trim().length === 0) {
-        return 'ebook';
+        return 'eboo
     }
     return title;
 }
