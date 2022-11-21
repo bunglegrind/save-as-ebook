@@ -19,10 +19,10 @@
     "url": "https://github.com/bunglegrind/save-as-ebook/issues"
   },
   "homepage": "https://github.com/bunglegrind/save-as-ebook#readme",
-  "dependencies": {
-    "ramda": "^0.28.0"
-  },
   "devDependencies": {
     "web-ext": "^7.2.0"
+  },
+  "dependencies": {
+    "ramda": "^0.28.0"
   }
 }

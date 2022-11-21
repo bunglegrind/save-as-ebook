@@ -258,7 +258,7 @@ function getPageUrl(url) {
 
 function getPageTitle(title) {
     if (title.trim().length === 0) {
-        return 'eboo
+        return 'ebook';
     }
     return title;
 }

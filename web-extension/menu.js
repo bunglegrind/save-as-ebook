@@ -1,7 +1,17 @@
 import adapter from "./browser-adapter.js";
 import parseq from "./libs/parseq-extended.js";
+import * as R from "./node_modules/ramda/es/index.js";
 
 const camelize = (s) => s.replace(/-./g, x => x[1].toUpperCase());
+
+const prop = R.curry(function(key, obj) {
+    if(obj[key]) {
+        return obj[key];
+    }
+    const reason = new Error(`${key} not found or undefined`);
+    reason.evidence = obj;
+    throw reason;
+});
 
 function dispatch(type, justAddToBuffer) {
     console.debug("dispatch: " + type);
@@ -39,13 +49,13 @@ function menuActions(value, reason) {
 		]),
 		parseq.sequence([
 			core.getStyles,
-			parseq.requestorize(R.prop("styles")),
+			parseq.requestorize(prop("styles")),
 			createStyleList,
 		]),
 		parseq.sequence([
 			core.getIncludeStyle,
 			parseq.requestorize(R.pipe(
-				R.prop("includeStyle"),
+				prop("includeStyle"),
 				R.tap((x) => document.getElementById("includeStyleCheck").checked = x),
 			))
 		]),
@@ -91,7 +101,7 @@ function createStyleList(callback, styles) {
             const index = R.pipe(
                 R.sort((a, b) => b.length - a.length),
                 R.head,
-                R.prop("index")
+                prop("index")
             )(allMatchingStyles);
 
             if (index !== undefined) {
@@ -140,7 +150,7 @@ document.getElementById('includeStyleCheck').onclick = function () {
         });
 }
 
-const firstTabId = parseq.requestorize(R.pipe(R.head, R.prop("id")));
+const firstTabId = parseq.requestorize(R.pipe(R.head, prop("id")));
 
 document.getElementById("editStyles").onclick = function () {
     if (document.getElementById('cssEditor-Modal')) {

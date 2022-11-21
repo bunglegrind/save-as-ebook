@@ -1,8 +1,7 @@
 import core from "./core.js";
 import parseq from "./libs/parseq-extended.js";
 import adapter from "./browser-adapter.js";
-import * as R from "./libs/ramda.min.js";
-
+import * as R from "./node_modules/ramda/es/index.js";
 
 const currentTab = {
     currentWindow: true,
@@ -28,7 +27,7 @@ function executeCommand(command) {
                     "Work in progress! Please wait until the current " +
                     "eBook is generated!"
                 )
-            }),
+            })
             : parseq.sequence([
 //WARNING: when saving page, the book buffer is reset
                 // if (!insertInBook) {
@@ -41,26 +40,47 @@ function executeCommand(command) {
                 }),
                 parseq.when(
                     ({includeStyle}) => includeStyle,
-                    parseq.parallel_object([
-                        tab: parseq.requestorize(R.prop("tab")),
-                        includeStyle: parseq.requestorize(R.prop("includeStyle")),
-                        css: parseq.sequence([
-                            parseq.parallel_object({
-                                styles: core.getStyles,
-                                tab: parseq.requestorize(R.prop("tab"))
-                            }),
-                            parseq.requestorize(extractCustomStyle),
-                            (cb, {tab, style}) => adapter.insertCss(
-                                {code: style}
-                            )(cb, tab)
-                        ])
+                    parseq.sequence([
+                        parseq.parallel_object({
+                            tab: parseq.requestorize(R.prop("tab")),
+                            includeStyle: parseq.requestorize(R.prop("includeStyle")),
+                            css: parseq.sequence([
+                                parseq.parallel_object({
+                                    styles: core.getStyles,
+                                    tab: parseq.requestorize(R.prop("tab"))
+                                }),
+                                parseq.requestorize(extractCustomStyle),
+                                (cb, {tab, style}) => adapter.insertCss(
+                                    {code: style}
+                                )(cb, tab)
+                            ])
+                        }),
+                        parseq.parallel_object({
+                            tab: parseq.requestorize(R.prop("tab")),
+                            message:parseq.sequence([
+                                send(action),
+                                processResponse
+                            ])
+                        }),
+                        adapter.sendMessage(undefined, function (v1, v2) {
+                            return {
+                                message: v2.message,
+                                tabId: v2.tab
+                            };
+                        }),
+                        parseq.requestorize(R.tap(core.removeWarn))
                     ])
-                send(action),
+                )
             ])
         )
     ])(my_callback, currentTab);
 
 
+    function my_callback(value, reason) {
+        if (value === undefined) {
+            return console.log(reason);
+        }
+    }
 
     if (command === "save-page") {
         core.savePage();
@@ -130,84 +150,41 @@ function extractCustomStyle({tab, styles}) {
 } 
 
 function send({subject}) {
-    return function (callback, {includeStyle, tab}) {
-        return adapter.sendMessage({
-            type: subject,
-            includeStyle,
-        })(callback, tab);
-    };
+    return parseq.sequence([
+        adapter.sendMessage(subject, function (v1, v2) {
+            return {
+                message: {
+                    type: v1,
+                    includeStyle: v2.includeStyle
+                },
+                tabId: v2.tab
+            };
+        }),
+    ]);
 }
 
-const xxx = (response) => {
-        if (!response) {
-            return chrome.tabs.sendMessage(tab, {"alert": "Save as eBook does not work on this web site!"}, () => {
-            });
-        }
-
-        if (response.content.trim() === "") {
-            if (justAddToBuffer) {
-                chrome.tabs.sendMessage(tab, {"alert": "Cannot add an empty selection as chapter!"}, () => {
-                });
-            } else {
-                chrome.tabs.sendMessage(tab, {"alert": "Cannot generate the eBook from an empty selection!"}, () => {
-                });
-            }
-            return;
-        }
-        if (!justAddToBuffer) {
-            chrome.tabs.sendMessage(tab, {"shortcut": "build-ebook", response: [response]});
-        } else {
-            core.getBook(function (data) {
+function processResponse(callback, response) {
+    if (!response) {
+        callback({"alert": "Save as eBook does not work on this web site!"});
+    } else if (response.content.trim() === "") {
+        callback(
+            justAddToBuffer
+            ? {"alert": "Cannot add an empty selection as chapter!"}
+            : {"alert": "Cannot generate the eBook from an empty selection!"}
+        );
+    } else if (!justAddToBuffer) {
+        callback({"shortcut": "build-ebook", response: [response]});
+    } else {
+        parseq.sequence([
+            core.getBook,
+            parseq.requestorize(function (data) {
                 data.allPages.push(response);
-                core.setBook(function () {
-                    chrome.tabs.sendMessage(
-                        tab[0].id,
-                        {"alert": "Page or selection added as chapter!"}
-                    );
-                }, {"allPages": data.allPages});
-            })
-        }
-    core.removeWarn();
-}
-
-function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles) {
-    chrome.tabs.sendMessage(tab[0].id, {
-        type: action,
-        includeStyle,
-        appliedStyles
-    }, (response) => {
-        if (!response) {
-            core.removeWarn();
-            return chrome.tabs.sendMessage(tab[0].id, {"alert": "Save as eBook does not work on this web site!"}, () => {
-            });
-        }
-
-        if (response.content.trim() === "") {
-            core.removeWarn();
-            if (justAddToBuffer) {
-                chrome.tabs.sendMessage(tab[0].id, {"alert": "Cannot add an empty selection as chapter!"}, () => {
-                });
-            } else {
-                chrome.tabs.sendMessage(tab[0].id, {"alert": "Cannot generate the eBook from an empty selection!"}, () => {
-                });
-            }
-            return;
-        }
-        if (!justAddToBuffer) {
-            chrome.tabs.sendMessage(tab[0].id, {"shortcut": "build-ebook", response: [response]});
-        } else {
-            core.getBook(function (data) {
-                data.allPages.push(response);
-                core.setBook(function () {
-                    core.removeWarn();
-                    chrome.tabs.sendMessage(
-                        tab[0].id,
-                        {"alert": "Page or selection added as chapter!"}
-                    );
-                }, {"allPages": data.allPages});
-            })
-        }
-    });
+                return {allPages: data.allPages};
+            }),
+            core.setBook,
+            parseq.constant({"alert": "Page or selection added as chapter!"})
+        ])(callback);
+    }
 }
 
 //MUST return true

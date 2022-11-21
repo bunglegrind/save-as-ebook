@@ -18,7 +18,7 @@ function insertCss(message) {
             if (chrome.runtime.lastError) {
                 return callback(undefined, `executedScript failed: tab - ${tabId} ${chrome.runtime.lastError}`);
             }
-            return callback("success");
+            return callback(tabId);
         });
     };
 }
@@ -29,13 +29,30 @@ function executeScript(tabId) {
             if (chrome.runtime.lastError) {
                 return callback(undefined, `executedScript failed: tab - ${tabId} ${chrome.runtime.lastError}`);
             }
-            return callback("success");
+            return callback(script);
         });
     }
 }
 
-function sendMessage(message) {
-    return function sendMessageRequestor(callback, tabId) {
+// function sendMessage(message) {
+//     return function sendMessageRequestor(callback, tabId) {
+//         chrome.tabs.sendMessage(tabId, message, function (response) {
+//             if (chrome.runtime.lastError) {
+//                 return callback(undefined, `sendMessage failed: tab - ${tabId} ${chrome.runtime.lastError}`);
+//             }
+//             return callback(response);
+//         });
+//     }
+// }
+
+function sendMessage(message, builder = function (v1, v2) {
+    return {
+        message: v1,
+        tabId: v2
+    };
+}) {
+    return function sendMessageRequestor(callback, value) {
+        const {message, tabId} = builder(message, value);
         chrome.tabs.sendMessage(tabId, message, function (response) {
             if (chrome.runtime.lastError) {
                 return callback(undefined, `sendMessage failed: tab - ${tabId} ${chrome.runtime.lastError}`);
@@ -76,7 +93,7 @@ function fromStorage(key, defaultValue) {
                 if (chrome.runtime.lastError) {
                     return callback(undefined, `fromStorage failed: key - ${key} ${chrome.runtime.lastError}`);
                 }
-                callback(data[key] ?? defaultValue);
+                return callback(data[key] ?? defaultValue);
             }
         );
     }
@@ -92,19 +109,20 @@ function toStorage(key) {
                 if (chrome.runtime.lastError) {
                     return callback(undefined, `toStorage failed: key - ${key} ${chrome.runtime.lastError}`);
                 }
-                return callback("success");
+                return callback(req);
             }
         });
     };
 }
 
-function removeFromStorage(key) {
-    return function removeFromStorageRequestor(callback) {
+function removeFromStorage(key, builder = (key, ignore) => key) {
+    return function removeFromStorageRequestor(callback, value = "") {
+        const key = builder(keu, value);
         chrome.storage.local.remove(key, function () {
             if (chrome.runtime.lastError) {
                 return callback(undefined, `removeFromStorage failed: key - ${key} ${chrome.runtime.lastError}`);
             }
-            return callback("success");
+            return callback(value);
         });
     };
 }
