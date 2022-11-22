@@ -5,7 +5,7 @@ import * as R from "./node_modules/ramda/es/index.js";
 const camelize = (s) => s.replace(/-./g, x => x[1].toUpperCase());
 
 const prop = R.curry(function(key, obj) {
-    if(obj[key]) {
+    if (obj[key] !== undefined) {
         return obj[key];
     }
     const reason = new Error(`${key} not found or undefined`);
@@ -49,13 +49,11 @@ function menuActions(value, reason) {
 		]),
 		parseq.sequence([
 			core.getStyles,
-			parseq.requestorize(prop("styles")),
 			createStyleList,
 		]),
 		parseq.sequence([
 			core.getIncludeStyle,
 			parseq.requestorize(R.pipe(
-				prop("includeStyle"),
 				R.tap((x) => document.getElementById("includeStyleCheck").checked = x),
 			))
 		]),
@@ -73,6 +71,7 @@ function menuActions(value, reason) {
     ])
 (function (value, reason) {
     if (value === undefined) {
+        console.log(reason.evidence);
         return console.log(`Error - drawing menu: ${reason}`);
     }
 });
@@ -101,7 +100,7 @@ function createStyleList(callback, styles) {
             const index = R.pipe(
                 R.sort((a, b) => b.length - a.length),
                 R.head,
-                prop("index")
+                R.unless(R.isNil, prop("index"))
             )(allMatchingStyles);
 
             if (index !== undefined) {
@@ -146,7 +145,7 @@ document.getElementById('includeStyleCheck').onclick = function () {
             if (value === undefined) {
                 return console.log("reason: menu-set include style " + reason);
             }
-            return console.log("value: menu-set include style " + value);
+            return console.log("value: menu-set include style " + JSON.stringify(value));
         });
 }
 
@@ -168,7 +167,7 @@ document.getElementById("editStyles").onclick = function () {
         },
         function (callback, value) {
             window.close();//closes menu
-            return callback(value);
+            callback(value);
         }
     ])(function (value, reason) {
         if (value === undefined) {

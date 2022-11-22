@@ -12,8 +12,8 @@ function getTabs(callback, props) {
     );
 }
 
-function insertCss(message) {
-    return function insertCssRequestor(callback, tabId) {
+function insertCss(tabId) {
+    return function insertCssRequestor(callback, message) {
         chrome.tabs.insertCSS(tabId, message, function () {
             if (chrome.runtime.lastError) {
                 return callback(undefined, `executedScript failed: tab - ${tabId} ${chrome.runtime.lastError}`);
