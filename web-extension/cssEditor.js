@@ -1,11 +1,8 @@
-for (var i=0; i<document.styleSheets.length; i++) {
-    document.styleSheets.item(i).disabled = true;
-}
+[...document.styleSheets].forEach(function (css) {
+    css.disabled = true;
+});
 
-var tmp = document.getElementById('cssEditor-Modal');
-if (tmp) {
-    tmp.parentNode.removeChild(tmp);
-}
+document.querySelector("#cssEditor-Modal")?.remove();
 
 var allPagesRef = null;
 var allStyles = [];
@@ -15,38 +12,45 @@ var currentStyleIndex = -1;
 
 showEditor();
 
+function createElement(el) {
+    return function (id = "", i18n = "") {
+        const element = document.createElement(el);
+        element.id = id;
+        return element;
+    }
+}
+
+const createDiv = createElement("div");
+const createSpan = createElement("span");
+const createButton = createElement("button");
+const createOption = createElement("option");
+const createLabel = createElement("label");
 
 function showEditor() {
+    const body = document.querySelector("body");
 
-    var body = document.getElementsByTagName('body')[0];
-    var modalContent = document.createElement('div');
-    modalContent.id = 'cssEditor-modalContent';
-    var modalHeader = document.createElement('div');
-    modalHeader.id = 'cssEditor-modalHeader';
-    var modalList = document.createElement('div');
-    modalList.id = 'cssEditor-modalList';
-    var modalFooter = document.createElement('div');
-    modalFooter.id = 'cssEditor-modalFooter';
+    const modalContent = createDiv("cssEditor-modalContent");
+    const modalHeader = createDiv("cssEditor-modalList");
+    const modalFooter = createDiv("cssEditor-modalFooter");
 
     ////////
     // Header
-    var title = document.createElement('span');
-    title.id = "cssEditor-Title";
+    const title = createSpan("cssEditor-Title");
     title.innerText = chrome.i18n.getMessage('styleEditor');
-    var upperCloseButton = document.createElement('button');
-    modalHeader.appendChild(title);
+
+    const upperCloseButton = createButton("cssEditor-UpperCloseButton");
     upperCloseButton.onclick = closeModal;
     upperCloseButton.innerText = 'X';
     upperCloseButton.className = 'cssEditor-text-button cssEditor-float-right';
+
+    modalHeader.appendChild(title);
     modalHeader.appendChild(upperCloseButton);
     /////////////////////
     // Content List
 
-    var titleHolder = document.createElement('div');
-    titleHolder.id = 'cssEditor-ebookTitleHolder';
+    const titleHolder = createDiv("cssEditor-ebookTitleHolder");
 
-    var existingStyles = document.createElement('select');
-    existingStyles.id = "cssEditor-selectStyle";
+    const existingStyles = createSelect("cssEditor-selectStyle");
     existingStyles.onchange = function (event) {
         if (existingStyles.selectedIndex === 0) {
             currentStyle = null;
@@ -56,22 +60,20 @@ function showEditor() {
             hideSaveStyle();
             return;
         }
-        currentStyle = allStyles[existingStyles.selectedIndex - 1];
         currentStyleIndex = existingStyles.selectedIndex - 1;
+        currentStyle = allStyles[currentStyleIndex];
         editCurrentStyle();
     };
-    var defaultOption = document.createElement('option');
+    const defaultOption =  createOption("cssEditor-defaultOption");
     defaultOption.innerText = chrome.i18n.getMessage('selectExistingCSS');
     existingStyles.appendChild(defaultOption);
     titleHolder.appendChild(existingStyles);
 
-    var titleLabel = document.createElement('label');
-    titleLabel.id = 'cssEditor-orLabel';
+    const titleLabel = createLabel("cssEditor-orLabel");
     titleLabel.innerText = chrome.i18n.getMessage('orLabel');
     titleHolder.appendChild(titleLabel);
 
-    var createNewStyleButton = document.createElement('button');
-    createNewStyleButton.id = 'cssEditor-createNewStyle';
+    const createNewStyleButton = createButton("cssEditor-createNewStyle");
     createNewStyleButton.innerText = chrome.i18n.getMessage('createNewStyle');
     createNewStyleButton.onclick = createNewStyle;
     titleHolder.appendChild(createNewStyleButton);
