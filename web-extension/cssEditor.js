@@ -13,9 +13,17 @@ var currentStyleIndex = -1;
 showEditor();
 
 function createElement(el) {
-    return function (id = "", i18n = "") {
+    return function (options) {
         const element = document.createElement(el);
-        element.id = id;
+
+        Object.entries(options).forEach(function ([key, value]) {
+            if (key === "name") {
+                element.id = `cssEditor-${options.name}`;
+            } else {
+                element[key] = value;
+            }
+        });
+
         return element;
     }
 }
@@ -25,22 +33,27 @@ const createSpan = createElement("span");
 const createButton = createElement("button");
 const createOption = createElement("option");
 const createLabel = createElement("label");
+const createInput = createElement("input");
 
 function showEditor() {
     const body = document.querySelector("body");
 
-    const modalContent = createDiv("cssEditor-modalContent");
-    const modalHeader = createDiv("cssEditor-modalList");
-    const modalFooter = createDiv("cssEditor-modalFooter");
+    const modalContent = createDiv({name: "modalContent"});
+    const modalHeader = createDiv({name: "modalList"});
+    const modalFooter = createDiv({name: "modalFooter"});
 
     ////////
     // Header
-    const title = createSpan("cssEditor-Title");
-    title.innerText = chrome.i18n.getMessage('styleEditor');
+    const title = createSpan({
+        name: "Title",
+        innerText: chrome.i18n.getMessage("styleEditor")
+    });
 
-    const upperCloseButton = createButton("cssEditor-UpperCloseButton");
-    upperCloseButton.onclick = closeModal;
-    upperCloseButton.innerText = 'X';
+    const upperCloseButton = createButton({
+        name: "UpperCloseButton",
+        onclick: closeModal,
+        innerText: "X"
+    });
     upperCloseButton.className = 'cssEditor-text-button cssEditor-float-right';
 
     modalHeader.appendChild(title);
@@ -48,49 +61,61 @@ function showEditor() {
     /////////////////////
     // Content List
 
-    const titleHolder = createDiv("cssEditor-ebookTitleHolder");
+    const titleHolder = createDiv({name: "ebookTitleHolder"});
 
-    const existingStyles = createSelect("cssEditor-selectStyle");
-    existingStyles.onchange = function (event) {
-        if (existingStyles.selectedIndex === 0) {
-            currentStyle = null;
-            currentStyleIndex = -1;
-            hideStyleEditor();
-            hideRemoveStyle();
-            hideSaveStyle();
-            return;
+    const existingStyles = createSelect({
+        name: "selectStyle",
+        onchange: function (event) {
+            if (existingStyles.selectedIndex === 0) {
+                currentStyle = null;
+                currentStyleIndex = -1;
+                hideStyleEditor();
+                hideRemoveStyle();
+                hideSaveStyle();
+                return;
+            }
+            currentStyleIndex = existingStyles.selectedIndex - 1;
+            currentStyle = allStyles[currentStyleIndex];
+            editCurrentStyle();
         }
-        currentStyleIndex = existingStyles.selectedIndex - 1;
-        currentStyle = allStyles[currentStyleIndex];
-        editCurrentStyle();
-    };
-    const defaultOption =  createOption("cssEditor-defaultOption");
-    defaultOption.innerText = chrome.i18n.getMessage('selectExistingCSS');
+    });
+
+    const defaultOption =  createOption({
+        name: "defaultOption",
+        innerText: chrome.i18n.getMessage("selectExistingCSS")
+    });
     existingStyles.appendChild(defaultOption);
     titleHolder.appendChild(existingStyles);
 
-    const titleLabel = createLabel("cssEditor-orLabel");
-    titleLabel.innerText = chrome.i18n.getMessage('orLabel');
+    const titleLabel = createLabel({
+        name: "orLabel",
+        innerText: chrome.i18n.getMessage('orLabel')
+    });
     titleHolder.appendChild(titleLabel);
 
-    const createNewStyleButton = createButton("cssEditor-createNewStyle");
-    createNewStyleButton.innerText = chrome.i18n.getMessage('createNewStyle');
-    createNewStyleButton.onclick = createNewStyle;
+    const createNewStyleButton = createButton({
+        name: "createNewStyle",
+        innerText: "createNewStyle",
+        onclick: createNewStyle
+    });
     titleHolder.appendChild(createNewStyleButton);
 
-    var exportCustomStylesButton = document.createElement('button');
-    exportCustomStylesButton.id = 'cssEditor-exportCustomStyles';
-    exportCustomStylesButton.innerText = chrome.i18n.getMessage('exportCustomStyles');
-    exportCustomStylesButton.onclick = exportCustomStyles;
+    const exportCustomStylesButton = createButton({
+        name: "exportCustomStyles",
+        innerText: chrome.i18n.getMessage("exportCustomStyles"),
+        onclick: exportCustomStyles
+    });
     titleHolder.appendChild(exportCustomStylesButton);
 
-    var importCustomStylesInput = document.createElement('input');
-    var importCustomStylesButton = document.createElement('label');
-    importCustomStylesButton.id = 'cssEditor-importCustomStyles';
-    importCustomStylesInput.type = 'file';
-    importCustomStylesInput.accept = 'application/json';
-    importCustomStylesButton.innerText = chrome.i18n.getMessage('importCustomStyles');
-    importCustomStylesButton.onchange = importCustomStyles;
+    const importCustomStylesInput = createInput({name: "importCustomStylesInput"});
+    const importCustomStylesButton = createLabel({
+        name: "impotCustomStyles",
+        type: "file",
+        accept: "application/json",
+        innerText: chrome.i18n.getMessage('importCustomStyles'),
+        onchange:importCustomStyles
+    });
+
     importCustomStylesButton.appendChild(importCustomStylesInput);
     titleHolder.appendChild(importCustomStylesButton);
 
@@ -118,18 +143,17 @@ function showEditor() {
     }
 
     function importCustomStyles(event) {
-        var reader = new FileReader();
+        const reader = new FileReader();
         reader.readAsText(event.target.files[0]);
         reader.onload = function () {
             try {
-                var importedStyles = JSON.parse(reader.result);
+                const importedStyles = JSON.parse(reader.result);
             } catch (e) {
                 alert(chrome.i18n.getMessage('invalidCustomStyleJson'));
                 return;
             }
             if (validateCustomStyles(importedStyles)) {
-                chrome.runtime.sendMessage(
-                    {
+                chrome.runtime.sendMessage({
                         'type': 'ImportCustomStyles',
                         'customStyles': importedStyles
                     },
@@ -154,34 +178,45 @@ function showEditor() {
     }
     //////
 
-    var editorHolder = document.createElement('div');
+    const editorHolder = createDiv("styleEditor");
     editorHolder.style.display = 'none';
-    editorHolder.id = 'cssEditor-styleEditor';
 
-    var editorHolderLeft = document.createElement('div');
-    editorHolderLeft.className = 'cssEditor-left-panel';
-    var editorHolderRight = document.createElement('div');
-    editorHolderRight.className = 'cssEditor-right-panel';
+    const editorHolderLeft = createDiv({
+        name: "editorHolderLeft",
+        className: "cssEditor-left-panel"
+    });
+    const editorHolderRight = createDiv({
+        name: "editorHolderRight",
+        className: "cssEditor-right-panel"
+    });
 
-    var nameLabelHolder = document.createElement('div');
-    nameLabelHolder.className = 'cssEditor-field-label-holder';
-    var nameLabel = document.createElement('label');
-    nameLabel.className = 'cssEditor-field-label';
-    nameLabel.innerText = chrome.i18n.getMessage('styleNameLabel');
+    const nameLabelHolder = createDiv({
+        name: "nameLabelHolder",
+        className: "cssEditor-field-label-holder"
+    });
+
+    const nameLabel = createLabel({
+        name: "nameLabel",
+        className: "cssEditor-field-label",
+        innerText: chrome.i18n.getMessage('styleNameLabel') 
+    });
     nameLabelHolder.appendChild(nameLabel);
     editorHolderLeft.appendChild(nameLabelHolder);
 
-    var nameInputHolder = document.createElement('div');
-    nameInputHolder.className = 'cssEditor-field-holder';
-    var cssNameInput = document.createElement('input');
-    cssNameInput.id = 'cssEditor-styleName';
-    cssNameInput.type = 'text';
+    const nameInputHolder = createDiv({
+        className: "cssEditor-field-holder"
+    });
+    const cssNameInput = createInput({
+        name: "cssEditor-styleName",
+        type: "text"
+    });
     nameInputHolder.appendChild(cssNameInput);
     editorHolderLeft.appendChild(nameInputHolder);
 
 
-    var urlLabelHolder = document.createElement('div');
-    urlLabelHolder.className = 'cssEditor-field-label-holder';
+    const urlLabelHolder = createDiv({
+        className: "cssEditor-field-label-holder"
+    });
     var urlLabel = document.createElement('label');
     urlLabel.className = 'cssEditor-field-label';
     urlLabel.innerText = 'URL Regex'; // TODO addd link to regex tutorial
