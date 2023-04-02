@@ -277,3 +277,13 @@ function jsonToCss(jsonObj) {
     }
     return result;
 }
+
+function getStyles(callback) {
+    chrome.runtime.sendMessage({
+        type: "get styles"
+    }, function (response) {
+        callback(response || []);
+    });
+}
+
+const translate = (label) => chrome.i18n.getMessage(label);

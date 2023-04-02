@@ -59,7 +59,7 @@ input[type="file"] {
     margin-top: 5px;
 }
 
-#cssEditor-styleEditor {
+#cssEditor-editorContent {
     display: flex;
     flex-flow: row;
 }
@@ -113,6 +113,26 @@ input[type="file"] {
     background-color: #eee;
     padding: 10px 20px;
     margin-bottom: 10px;
+}
+
+#cssEditor-Modal {
+    display: block;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(210, 210, 210);
+}
+
+#cssEditor-modalContent {
+    z-index: 2;
+    background-color: rgb(255, 255, 255);
+    margin: 5% auto;
+    padding: 0;
+    width: 70%;
 }
 
 #cssEditor-modalHeader {

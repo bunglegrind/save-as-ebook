@@ -1,57 +1,95 @@
 (function () {
-    const translate = (label) => chrome.i18n.getMessage(label);
+    const regexpUrl = (
+        "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_"
+        + "Expressions"
+    );
 
-    const html = `<div id="cssEditor-Modal" style="display: block; position: fixed; z-index: 1; left: 0px; top: 0px; width: 100%; height: 100%; overflow: auto; background-color: rgb(210, 210, 210);">
-    <div id="cssEditor-modalContent" style="z-index: 2; background-color: rgb(255, 255, 255); margin: 5% auto; padding: 0px; width: 70%;">
+    const defaultOption = `<option>${translate("selectExistingCSS")}</option>`;
+
+    const html = `<div id="cssEditor-Modal">
+    <div id="cssEditor-modalContent">
         <div id="cssEditor-modalHeader">
-        <span id="cssEditor-Title">${translate("styleEditor")}</span>
-        <button id="cssEditor-close" class="cssEditor-text-button cssEditor-float-right">X</button>
+            <span id="cssEditor-Title">${translate("styleEditor")}</span>
+            <button
+                id="cssEditor-close"
+                class="cssEditor-text-button cssEditor-float-right"
+        >X</button>
         </div>
         <div id="cssEditor-modalList">
-        <div id="cssEditor-ebookTitleHolder">
-            <select id="cssEditor-selectStyle">
-            <option>${translate("selectExistingCSS")}</option>
-            </select>
-            <label id="cssEditor-orLabel">${translate("orLabel")}</label>
-            <button id="cssEditor-createNewStyle">${translate("createNewStyle")}</button>
-            <button id="cssEditor-exportCustomStyles">${translate("exportCustomStyles")}</button>
-            <label id="cssEditor-importCustomStyles">
-                ${translate("importCustomStyles")}
-            <input type="file" accept="application/json">
-            </label>
-        </div>
-        <div style="display: none;" id="cssEditor-styleEditor">
-            <div class="cssEditor-left-panel">
-            <div class="cssEditor-field-label-holder">
-                <label class="cssEditor-field-label"></label>
+            <div id="cssEditor-ebookTitleHolder">
+                <select id="cssEditor-selectStyle">
+                    ${defaultOption}
+                </select>
+                <label id="cssEditor-orLabel">${translate("orLabel")}</label>
+                <button id="cssEditor-createNewStyle">
+                    ${translate("createNewStyle")}
+                </button>
+                <button id="cssEditor-exportCustomStyles">
+                ${translate("exportCustomStyles")}
+                </button>
+                <label id="cssEditor-importCustomStyles">
+                    ${translate("importCustomStyles")}
+                <input type="file" accept="application/json">
+                </label>
             </div>
-            <div class="cssEditor-field-holder">
-                <input id="cssEditor-styleName" type="text">
+            <div style="display: none;" id="cssEditor-styleEditor">
+                <div id="cssEditor-editorContent">
+                    <div class="cssEditor-left-panel">
+                        <div class="cssEditor-field-label-holder">
+                            <label class="cssEditor-field-label">
+                                ${translate("styleNameLabel")}
+                            </label>
+                        </div>
+                        <div class="cssEditor-field-holder">
+                            <input id="cssEditor-styleName" type="text">
+                        </div>
+                        <div class="cssEditor-field-label-holder">
+                            <label class="cssEditor-field-label">
+                                URL Regex
+                            </label>
+                            <a href="${regexpUrl}">
+                            ${translate("howToWriteRegexLabel")}
+                            </a>
+                        </div>
+                        <div class="cssEditor-field-holder">
+                            <input id="cssEditor-matchUrl" type="text">
+                        </div>
+                    </div>
+                    <div class="cssEditor-right-panel">
+                        <div class="cssEditor-field-label-holder">
+                            <label class="cssEditor-field-label">CSS</label>
+                        </div>
+                        <div class="cssEditor-field-holder">
+                            <textarea
+                                id="cssEditor-styleContent"
+                                data="language: css"
+                            >
+                            </textarea>
+                        </div>
+                    </div>
+                </div>
+                <div id="cssEditor-modalFooter">
+                <button
+                    id="cssEditor-removeStyle"
+                    class="cssEditor-footer-button
+                        cssEditor-float-left
+                        cssEditor-cancel-button"
+                >
+                        ${translate("removeStyle")}
+                </button>
+                <button
+                    id="cssEditor-saveStyle"
+                    class="cssEditor-footer-button
+                        cssEditor-float-right
+                        cssEditor-save-button"
+                >
+                    ${translate("saveStyle")}
+                </button>
+                </div>
             </div>
-            <div class="cssEditor-field-label-holder">
-                <label class="cssEditor-field-label"></label>
-                <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions"></a>
-            </div>
-            <div class="cssEditor-field-holder">
-                <input id="cssEditor-matchUrl" type="text">
-            </div>
-            </div>
-            <div class="cssEditor-right-panel">
-            <div class="cssEditor-field-label-holder">
-                <label class="cssEditor-field-label"></label>
-            </div>
-            <div class="cssEditor-field-holder">
-                <textarea id="cssEditor-styleContent" data="language: css"></textarea>
-            </div>
-            </div>
-            <div id="cssEditor-modalFooter">
-            <button id="cssEditor-removeStyle" class="cssEditor-footer-button cssEditor-float-left cssEditor-cancel-button"></button>
-            <button id="cssEditor-saveStyle" class="cssEditor-footer-button cssEditor-float-right cssEditor-save-button"></button>
-            </div>
-        </div>
         </div>
     </div>
-    </div>`;
+</div>`;
     [...document.styleSheets].forEach(function (css) {
         css.disabled = true;
     });
@@ -95,6 +133,7 @@
         body.innerHTML += html;
         const modal = document.querySelector("#cssEditor-Modal");
         const modalContent = document.querySelector("#cssEditor-ModalContent");
+        const existingStyles = document.querySelector("#cssEditor-selectStyle");
 
         ////////
         // Header
@@ -177,134 +216,25 @@
         function exportCustomStyles() {
             chrome.runtime.sendMessage({'type': 'ExportCustomStyles'});
         }
-        //////
 
-        const editorHolder = createDiv("styleEditor");
-        editorHolder.style.display = 'none';
-
-        const editorHolderLeft = createDiv({
-            name: "editorHolderLeft",
-            className: "cssEditor-left-panel"
-        });
-        const editorHolderRight = createDiv({
-            name: "editorHolderRight",
-            className: "cssEditor-right-panel"
-        });
-
-        const nameLabelHolder = createDiv({
-            name: "nameLabelHolder",
-            className: "cssEditor-field-label-holder"
-        });
-
-        const nameLabel = createLabel({
-            name: "nameLabel",
-            className: "cssEditor-field-label",
-            innerText: translate('styleNameLabel') 
-        });
-        nameLabelHolder.appendChild(nameLabel);
-        editorHolderLeft.appendChild(nameLabelHolder);
-
-        const nameInputHolder = createDiv({
-            className: "cssEditor-field-holder"
-        });
-        const cssNameInput = createInput({
-            name: "cssEditor-styleName",
-            type: "text"
-        });
-        nameInputHolder.appendChild(cssNameInput);
-        editorHolderLeft.appendChild(nameInputHolder);
-
-
-        const urlLabelHolder = createDiv({
-            className: "cssEditor-field-label-holder"
-        });
-        
-        const urlLabel = createLabel({
-            className: "cssEditor-field-label",
-            innerText: "URL Regex",
-        });
-
-        const regexHelp = createAnchor({
-            innerText: translate('howToWriteRegexLabel'),
-            href: (
-                "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/"
-                + "Regular_Expressions"
-            )
-        });
-        urlLabelHolder.appendChild(urlLabel);
-        urlLabelHolder.appendChild(regexHelp);
-        editorHolderLeft.appendChild(urlLabelHolder);
-
-        var urlInputHolder = document.createElement('div');
-        urlInputHolder.className = 'cssEditor-field-holder';
-        var urlInput = document.createElement('input');
-        urlInput.id = 'cssEditor-matchUrl';
-        urlInput.type = 'text';
-        urlInputHolder.appendChild(urlInput);
-        editorHolderLeft.appendChild(urlInputHolder);
-
-        var contentLabelHolder = document.createElement('div');
-        contentLabelHolder.className = 'cssEditor-field-label-holder';
-        var contentLabel = document.createElement('label');
-        contentLabel.className = 'cssEditor-field-label';
-        contentLabel.innerText = 'CSS';
-        contentLabelHolder.appendChild(contentLabel);
-        editorHolderRight.appendChild(contentLabelHolder);
-
-        var contentInputHolder = document.createElement('div');
-        contentInputHolder.className = 'cssEditor-field-holder';
-        var contentInput = document.createElement('textarea');
-        contentInput.id = 'cssEditor-styleContent';
-        contentInput.setAttribute('data', 'language: css');
-        contentInputHolder.appendChild(contentInput);
-        editorHolderRight.appendChild(contentInputHolder);
-
-        editorHolder.appendChild(editorHolderLeft);
-        editorHolder.appendChild(editorHolderRight);
-        modalList.appendChild(editorHolder);
-
-
-
-        var saveButtonsHolder = document.createElement('div');
-
-        var removeCssButton = document.createElement('button');
-        removeCssButton.id = 'cssEditor-removeStyle';
-        removeCssButton.innerText = translate('removeStyle');
-        removeCssButton.className = 'cssEditor-footer-button cssEditor-float-left cssEditor-cancel-button';
-        removeCssButton.onclick = removeStyle;
-        saveButtonsHolder.appendChild(removeCssButton);
-
-        var saveCssButton = document.createElement('button');
-        saveCssButton.id = 'cssEditor-saveStyle';
-        saveCssButton.innerText = translate('saveStyle');
-        saveCssButton.className = 'cssEditor-footer-button cssEditor-float-right cssEditor-save-button';
-        saveCssButton.onclick = saveStyle;
-        saveButtonsHolder.appendChild(saveCssButton);
-
-        modalFooter.appendChild(saveButtonsHolder);
-
-        //////////////////////////
+        document.querySelector("#cssEditor-removeStyle").onclick = removeStyle;
+        document.querySelector("#cssEditor-saveStyle").onclick = saveStyle;
 
         function createStyleList(allStylesTmp) {
-            if (allStylesTmp && allStylesTmp.length > 0) {
-                allStyles = allStyles.concat(allStylesTmp);
-            }
+            allStyles = allStyles.concat(allStylesTmp);
 
-            while (existingStyles.hasChildNodes() && existingStyles.childElementCount > 1) {
-                existingStyles.removeChild(existingStyles.lastChild);
-            }
-
-            for (var i = 0; i < allStyles.length; i++) {
-                var listItem = document.createElement('option');
-                listItem.id = 'option_' + i;
-                listItem.className = 'cssEditor-chapter-item';
-                listItem.value = 'option_' + i;
-                listItem.innerText = allStyles[i].title;
-                if (currentStyle && (allStyles[i].title === currentStyle.title)) {
+            existingStyles.innerHTML = defaultOption;
+            allStyles.forEach(function (style, i) {
+                const listItem = document.createElement("option");
+                listItem.id = "option_" + i;
+                listItem.className = "cssEditor-chapter-item";
+                listItem.value = "option_" + i;
+                listItem.innerText = style.title;
+                if (style.title === currentStyle?.title) {
                     listItem.selected = 'selected';
                 }
                 existingStyles.appendChild(listItem);
-            }
+            });
         }
 
         function editCurrentStyle() {
@@ -316,52 +246,52 @@
             showRemoveStyle();
             showSaveStyle();
 
-            document.getElementById('cssEditor-styleName').value = currentStyle.title;
-            document.getElementById('cssEditor-matchUrl').value = currentStyle.url;
-            document.getElementById('cssEditor-styleContent').value = currentStyle.style;
+            document.getElementById("cssEditor-styleName").value = currentStyle.title;
+            document.getElementById("cssEditor-matchUrl").value = currentStyle.url;
+            document.getElementById("cssEditor-styleContent").value = currentStyle.style;
 
         }
 
         function resetFields() {
-            document.getElementById('cssEditor-styleName').value = '';
-            document.getElementById('cssEditor-matchUrl').value = '';
-            document.getElementById('cssEditor-styleContent').value = '';
+            document.getElementById("cssEditor-styleName").value = "";
+            document.getElementById("cssEditor-matchUrl").value = "";
+            document.getElementById("cssEditor-styleContent").value = "";
         }
 
         function hideStyleEditor() {
-            document.getElementById('cssEditor-styleEditor').style.display = 'none';
+            document.getElementById("cssEditor-styleEditor").style.display = "none";
         }
 
         function showStyleEditor() {
-            document.getElementById('cssEditor-styleEditor').style.display = 'flex';
+            document.getElementById("cssEditor-styleEditor").style.display = "block";
         }
 
         function showRemoveStyle() {
-            document.getElementById('cssEditor-removeStyle').style.display = 'inline-block';
+            document.getElementById("cssEditor-removeStyle").style.display = "inline-block";
         }
 
         function hideRemoveStyle() {
-            document.getElementById('cssEditor-removeStyle').style.display = 'none';
+            document.getElementById("cssEditor-removeStyle").style.display = "none";
         }
 
         function showSaveStyle() {
-            document.getElementById('cssEditor-saveStyle').style.display = 'inline-block';
+            document.getElementById("cssEditor-saveStyle").style.display = "inline-block";
         }
 
         function hideSaveStyle() {
-            document.getElementById('cssEditor-saveStyle').style.display = 'none';
+            document.getElementById("cssEditor-saveStyle").style.display = "none";
         }
 
         function saveStyle() {
-            var isRegexValid = checkRegex(document.getElementById('cssEditor-matchUrl').value);
+            var isRegexValid = checkRegex(document.getElementById("cssEditor-matchUrl").value);
             if (!isRegexValid) {
-                alert(translate('invalidRegex'));
+                alert(translate("invalidRegex"));
                 return;
             }
             var tmpValue = {
-                title: document.getElementById('cssEditor-styleName').value,
-                url: document.getElementById('cssEditor-matchUrl').value,
-                style: document.getElementById('cssEditor-styleContent').value
+                title: document.getElementById("cssEditor-styleName").value,
+                url: document.getElementById("cssEditor-matchUrl").value,
+                style: document.getElementById("cssEditor-styleContent").value
             }
             if (currentStyle === null) {
                 allStyles.push(tmpValue);
@@ -374,7 +304,7 @@
             setStyles(allStyles);
             createStyleList();
             showRemoveStyle();
-            alert(translate('styleSaved'));
+            alert(translate("styleSaved"));
         }
 
         function checkRegex(regexContent) {
@@ -401,19 +331,15 @@
             }
         }
 
-
-        /////////////////////
-
-
-        window.onclick = function(event) {
-            if (event.target == modal) {
+        window.onclick = function (event) {
+            if (event.target === modal) {
                 closeModal();
             }
         };
 
         modal.style.display = "block";
 
-        document.onkeydown = function(evt) {
+        document.onkeydown = function (evt) {
             evt = evt || window.event;
             if (evt.keyCode == 27) {
                 closeModal();
@@ -424,40 +350,8 @@
             Array.from(document.styleSheets).forEach(function (item) {
                 item.disabled = false;
             });
-            modal.style.display = "none";
-            modalContent.parentNode.removeChild(modalContent);
-            modal.parentNode.removeChild(modal);
+            modal.remove();
         }
-
-        function saveChanges() {
-            var newChapters = [];
-            var newEbookTitle = ebookTilte.value;
-            if (newEbookTitle.trim() === '') {
-                newEbookTitle = 'eBook';
-            }
-
-            try {
-                var tmpChaptersList = document.getElementsByClassName('cssEditor-chapter-item');
-                if (!tmpChaptersList || !allPagesRef) {
-                    return;
-                }
-
-                for (var i = 0; i < tmpChaptersList.length; i++) {
-                    var listIndex = Number(tmpChaptersList[i].id.replace('li', ''));
-                    if (allPagesRef[listIndex].removed === false) {
-                        newChapters.push(allPagesRef[listIndex]);
-                    }
-                }
-
-                saveEbookTitle(newEbookTitle);
-                saveEbookPages(newChapters);
-                return newChapters;
-            } catch (e) {
-                console.log('Error:', e);
-            }
-        }
-
-        /////////////////////
 
         getStyles(createStyleList);
     }
