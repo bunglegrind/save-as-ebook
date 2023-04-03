@@ -286,4 +286,15 @@ function getStyles(callback) {
     });
 }
 
+function importStyles(importedStyles, callback) {
+    chrome.runtime.sendMessage({
+        'type': 'ImportCustomStyles',
+        'customStyles': importedStyles
+    }, callback);
+}
+
+function exportCustomStyles() {
+    chrome.runtime.sendMessage({'type': 'ExportCustomStyles'});
+}
+
 const translate = (label) => chrome.i18n.getMessage(label);

@@ -4,6 +4,10 @@
         + "Expressions"
     );
 
+    // import("./browser-adapter.js").then(function (m) {
+    //     console.log(Object.keys(m));
+    // });
+
     const defaultOption = `<option>${translate("selectExistingCSS")}</option>`;
 
     const html = `<div id="cssEditor-Modal">
@@ -193,15 +197,10 @@
                     return;
                 }
                 if (validateCustomStyles(importedStyles)) {
-                    chrome.runtime.sendMessage({
-                            'type': 'ImportCustomStyles',
-                            'customStyles': importedStyles
-                        },
-                        function () {
-                            alert(translate('stylesImported'));
-                            closeModal();
-                        }
-                    );
+                    importStyles(importedStyles, function () {
+                        alert(translate('stylesImported'));
+                        closeModal();
+                    });
                 } else {
                     alert(translate('invalidCustomStyleJson'));
                 }
@@ -213,14 +212,11 @@
                 return;
             };
         }
-        function exportCustomStyles() {
-            chrome.runtime.sendMessage({'type': 'ExportCustomStyles'});
-        }
 
         document.querySelector("#cssEditor-removeStyle").onclick = removeStyle;
         document.querySelector("#cssEditor-saveStyle").onclick = saveStyle;
 
-        function createStyleList(allStylesTmp) {
+        function createStyleList(allStylesTmp = []) {
             allStyles = allStyles.concat(allStylesTmp);
 
             existingStyles.innerHTML = defaultOption;
