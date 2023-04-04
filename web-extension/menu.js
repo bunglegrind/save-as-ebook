@@ -162,10 +162,10 @@
             function injectScripts(callback, tabId) {
                 return pq.parallel([
                     pq.wrap_requestor(adapter.insertCss(tabId))(
-                        {file: "/cssEditor.css"}
+                        {file: "/cssEditor/cssEditor.css"}
                     ),
                     pq.wrap_requestor(adapter.executeScript(tabId))(
-                        {file: "/cssEditor.js"}
+                        {file: "/cssEditor/cssEditor.js"}
                     )
                 ])(callback, tabId);
             },

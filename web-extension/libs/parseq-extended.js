@@ -156,6 +156,14 @@ function make_requestor_factory(unary) {
     return wrap_requestor(requestorize(unary));
 }
 
+function default_import(url) {
+    return function dynamic_import_callback(callback) {
+        import(url).then(function (module) {
+            return callback(module["default"]);
+        }).catch((e) => callback(undefined, e));
+    };
+}
+
 export default Object.freeze({
     ...parseq,
     wrap_reason,
@@ -170,5 +178,6 @@ export default Object.freeze({
     apply_race,
     apply_fallback,
     apply_parallel,
-    apply_parallel_object
+    apply_parallel_object,
+    default_import
 });

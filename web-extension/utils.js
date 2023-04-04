@@ -286,6 +286,14 @@ function getStyles(callback) {
     });
 }
 
+function setStyles(styles) {
+    chrome.runtime.sendMessage({
+        type: "set styles",
+        styles: styles
+    }, function (response) {
+    });
+}
+
 function importStyles(importedStyles, callback) {
     chrome.runtime.sendMessage({
         'type': 'ImportCustomStyles',
@@ -298,3 +306,4 @@ function exportCustomStyles() {
 }
 
 const translate = (label) => chrome.i18n.getMessage(label);
+const local = (x) => chrome.runtime.getURL(x);
