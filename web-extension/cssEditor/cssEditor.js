@@ -4,8 +4,10 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
     pq.parallel_object({
         htmlTemplate: pq.default_import(local("./cssEditor/template.js")),
         adapter: pq.default_import(local("./browser-adapter.js")),
+        // r: pq.default_import(local("./node_modules/ramda/es/index.js"))
     })(function (value, reason) {
         if (value === undefined) {
+            console.log("Error in cssEditor page");
             return console.log(reason);
         }
         const {htmlTemplate, adapter} = value;
@@ -18,7 +20,6 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
 
         document.querySelector("#cssEditor-Modal")?.remove();
 
-        let allPagesRef = null;
         let allStyles = [];
         let currentStyle;
         let currentStyleIndex = -1;
@@ -26,27 +27,35 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
         showEditor();
 
         function showEditor() {
+            // const setDisplay = r.curry(function (value, id) {
+            //     document.querySelector(
+            //         `#css-Editor-${id}`
+            //     ).style.display = value;
+            // });
+            const setDisplay = function (value) {
+                return function (id) {
+                    document.querySelector(
+                        `#css-Editor-${id}`
+                    ).style.display = value;
+                };
+            };
+            const displayNone = setDisplay("none");
+            const displayBlock = setDisplay("block");
+            const displayInlineBlock = setDisplay("inline-block");
+
             const body = document.querySelector("body");
             body.innerHTML += html;
             const modal = document.querySelector("#cssEditor-Modal");
-            const modalContent = document.querySelector("#cssEditor-ModalContent");
             const existingStyles = document.querySelector("#cssEditor-selectStyle");
 
-            ////////
-            // Header
-
             document.querySelector("#cssEditor-close").onclick = closeModal;
-
-            /////////////////////
-            // Content List
-
             document.querySelector("#cssEditor-selectStyle").onchange = function (event) {
                 if (existingStyles.selectedIndex === 0) {
                     currentStyle = undefined;
                     currentStyleIndex = -1;
-                    hideStyleEditor();
-                    hideRemoveStyle();
-                    hideSaveStyle();
+                    displayNone("styleEditor");
+                    displayNone("removeStyle");
+                    displayNone("saveStyle");
                     return;
                 }
                 currentStyleIndex = existingStyles.selectedIndex - 1;
@@ -57,14 +66,32 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
             document.querySelector("#cssEditor-createNewStyle").onclick = createNewStyle;
             document.querySelector("#cssEditor-exportCustomStyles").onclick = exportCustomStyles;
             document.querySelector("#cssEditor-importCustomStyles").onchange = importCustomStyles;
+            document.querySelector("#cssEditor-removeStyle").onclick = removeStyle;
+            document.querySelector("#cssEditor-saveStyle").onclick = saveStyle;
+            window.onclick = function (event) {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            };
+
+
+            document.onkeydown = function (evt) {
+                evt = evt || window.event;
+                if (evt.keyCode == 27) {
+                    closeModal();
+                }
+            };
+
+            modal.style.display = "block";
+            getStyles(createStyleList);
 
             function createNewStyle() {
                 currentStyle = undefined;
                 currentStyleIndex = -1;
                 resetFields();
-                showStyleEditor();
-                showSaveStyle();
-                hideRemoveStyle();
+                displayBlock("styleEditor");
+                displayInlineBlock("saveStyle");
+                displayNone("removeStyle");
                 createStyleList();
             }
 
@@ -107,8 +134,6 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                 };
             }
 
-            document.querySelector("#cssEditor-removeStyle").onclick = removeStyle;
-            document.querySelector("#cssEditor-saveStyle").onclick = saveStyle;
 
             function createStyleList(allStylesTmp = []) {
                 allStyles = allStyles.concat(allStylesTmp);
@@ -225,20 +250,6 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                 }
             }
 
-            window.onclick = function (event) {
-                if (event.target === modal) {
-                    closeModal();
-                }
-            };
-
-            modal.style.display = "block";
-
-            document.onkeydown = function (evt) {
-                evt = evt || window.event;
-                if (evt.keyCode == 27) {
-                    closeModal();
-                }
-            };
 
             function closeModal() {
                 Array.from(document.styleSheets).forEach(function (item) {
@@ -246,8 +257,6 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                 });
                 modal.remove();
             }
-
-            getStyles(createStyleList);
         }
     });
 });
