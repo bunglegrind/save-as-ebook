@@ -162,10 +162,10 @@
             function injectScripts(callback, tabId) {
                 return pq.parallel([
                     pq.wrap_requestor(adapter.insertCss(tabId))(
-                        {file: "/cssEditor/cssEditor.css"}
+                        {file: "/cssEditor/style.css"}
                     ),
                     pq.wrap_requestor(adapter.executeScript(tabId))(
-                        {file: "/cssEditor/cssEditor.js"}
+                        {file: "/cssEditor/script.js"}
                     )
                 ])(callback, tabId);
             },
@@ -192,8 +192,14 @@
             firstTabId,
             function injectScripts(callback, tabId) {
                 return pq.parallel([
-                    pq.wrap_requestor(adapter.insertCss(tabId), {file: "/chapterEditor.css"}),
-                    pq.wrap_requestor(adapter.executeScript(tabId), {file: "./chapterEditor.js"})
+                    pq.wrap_requestor(
+                        adapter.insertCss(tabId),
+                        {file: "/chapterEditor/style.css"}
+                    ),
+                    pq.wrap_requestor(
+                        adapter.executeScript(tabId),
+                        {file: "./chapterEditor/script.js"}
+                    )
             ])(callback, tabId);
 	    },
 	    function (callback, value) {

@@ -278,32 +278,5 @@ function jsonToCss(jsonObj) {
     return result;
 }
 
-function getStyles(callback) {
-    chrome.runtime.sendMessage({
-        type: "get styles"
-    }, function (response) {
-        callback(response || []);
-    });
-}
-
-function setStyles(styles) {
-    chrome.runtime.sendMessage({
-        type: "set styles",
-        styles: styles
-    }, function (response) {
-    });
-}
-
-function importStyles(importedStyles, callback) {
-    chrome.runtime.sendMessage({
-        'type': 'ImportCustomStyles',
-        'customStyles': importedStyles
-    }, callback);
-}
-
-function exportCustomStyles() {
-    chrome.runtime.sendMessage({'type': 'ExportCustomStyles'});
-}
-
 const translate = (label) => chrome.i18n.getMessage(label);
 const local = (x) => chrome.runtime.getURL(x);

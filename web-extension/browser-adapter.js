@@ -66,12 +66,24 @@ function sendRuntimeMessage(message) {
     return function sendRuntimeMessageRequestor(callback) {
        chrome.runtime.sendMessage(message, function (response) {
             if (!response && chrome.runtime.lastError) {
-                return callback(undefined, `sendRuntimeMessage (message: ${JSON.stringify(message)}) failed: ${chrome.runtime.lastError}`);
+                return callback(
+                    undefined,
+                    `sendRuntimeMessage (message: ${JSON.stringify(message)})`
+                    + ` failed: ${chrome.runtime.lastError}`
+                );
             }
             return callback(response);
         });
     };
 }
+
+const getStyles = sendRuntimeMessage({type: "get styles"});
+const setStyles = (styles) => sendRuntimeMessage({type: "set styles", styles});
+const importStyles = (styles) => sendRuntimeMessage({
+    type: "ImportCustomStyles",
+    customStyles: styles
+});
+const exportStyles = sendRuntimeMessage({type: "ExportCustomStyles"});
 
 // function sendRuntimeMessage(callback, message) {
 //     chrome.runtime.sendMessage(message, function (response) {
@@ -157,6 +169,10 @@ export default Object.freeze({
     listenForCommands,
     listenForMessages,
     executeScript,
+    getStyles,
+    setStyles,
+    importStyles,
+    exportStyles,
     local_text: (id) => chrome.i18n.getMessage(id),
     get_background_page_requestor: (cb) => parseq.promise_requestorize(
         chrome.runtime.getBackgroundPage(cb)

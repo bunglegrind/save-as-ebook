@@ -1,4 +1,4 @@
-import core from "./core.js";
+import core from "./core.js";//TODO maybe it's just a workaround
 import parseq from "./libs/parseq-extended.js";
 import adapter from "./browser-adapter.js";
 import * as R from "./node_modules/ramda/es/index.js";
@@ -255,14 +255,14 @@ function _execRequest(request, sender, sendResponse) {
                     })
                 ),
                 'filename': 'customStyles.json'
-            });
+            }, sendResponse);
         });
 
     }
     if (request.type === 'ImportCustomStyles') {
         chrome.storage.local.set(
             {'styles': request.customStyles.styles},
-            sendResponse
+            () => sendResponse(true)
         );
     }
     if (request.type === 'downloadEBook') {
