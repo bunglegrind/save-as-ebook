@@ -452,13 +452,21 @@ function _execRequest(request, sender, sendResponse) {
             && typeof obj.type === "string"
         );
     }
+    function isUint8Array(arr) {
+        return (
+            typeof arr === "object"
+            && !Array.isArray(arr)
+            && arr.byteLength > 0
+            && arr.BYTES_PER_ELEMENT === 1
+        );
+    }
     if (request.type === 'downloadEBook') {
-        if (!isBlob(request.content)) {
+        if (!isUint8Array(request.content)) {
             sendResponse(
-                "eBook is not a Blob. Aborting"
-                + " typeof content: " + typeof request.content
+                "eBook is not a uint8array. Aborting"
+                + " typeof content: " + typeof request.content 
+                + " construct: " + request.content.constructor.name
             );
-
             resetBusy();
         } else {
             try {
@@ -466,7 +474,9 @@ function _execRequest(request, sender, sendResponse) {
                     {
                     'saveAs': true,
                     'url': URL.createObjectURL(
-                        request.content, {
+                        new Blob(request.content, {
+                            type: "application/epub+zip",
+                        }), {
                             type: "application/epub+zip",
                         }),
                     //TODO listent downloads.onChanged
