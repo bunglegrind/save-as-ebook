@@ -445,24 +445,41 @@ function _execRequest(request, sender, sendResponse) {
             sendResponse
         );
     }
+    function isBlob(obj) {
+        return (
+            typeof obj === "object"
+            && typeof obj.size === "number"
+            && typeof obj.type === "string"
+        );
+    }
     if (request.type === 'downloadEBook') {
-        chrome.downloads.download(
-            {
-            'saveAs': true,
-            'url': URL.createObjectURL(
-                request.content, {
-                    type: "application/epub+zip",
-                }),
-            //TODO listent downloads.onChanged
-            //https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download
-            'filename': request.filename.replace(/[<>"*|:]/g, "")
+        if (!isBlob(request.content)) {
+            sendResponse("eBook is not a Blob. Aborting");
+            resetBusy();
+        } else {
+            try {
+                chrome.downloads.download(
+                    {
+                    'saveAs': true,
+                    'url': URL.createObjectURL(
+                        request.content, {
+                            type: "application/epub+zip",
+                        }),
+                    //TODO listent downloads.onChanged
+                    //https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download
+                    'filename': request.filename.replace(/[<>"*|:]/g, "")
 
-            },
-            function (downloadId) {
-                console.log("done " + downloadId);
+                    },
+                    function (downloadId) {
+                        console.log("done " + downloadId);
+                        resetBusy();
+                    }
+                );
+            } catch (e) {
+                sendResponse(e.message);
                 resetBusy();
             }
-        );
+        }
     }
     return true;
 }

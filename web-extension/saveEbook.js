@@ -197,6 +197,8 @@ function _buildEbook(allPages, fromMenu=false) {
             type: 'downloadEBook',
             content,
             filename: ebookFileName
-        });
+        }, 
+            (response) => console.log(response)
+        );
     });
 }
