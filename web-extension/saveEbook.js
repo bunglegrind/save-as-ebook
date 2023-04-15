@@ -185,12 +185,29 @@ function _buildEbook(allPages, fromMenu=false) {
     } catch (error) {
         console.log(error);
     }
+    function isBlob(obj) {
+        return (
+            typeof obj === "object"
+            && typeof obj.size === "number"
+            && typeof obj.type === "string"
+        );
+    }
     
 
     zip.generateAsync({
         type: "blob",
         mimeType: "application/epub+zip"
     }).then(function(content) {
+        if (!isBlob(content)) {
+            console.log("JSZIP didn't return a blob. Aborting"); 
+            console.log("Is array? " + Array.isArray(content));
+            console.log("typeof: " + typeof content);
+            chrome.runtime.sendMessage({
+                type: 'done'
+            }, 
+                () => {}
+            );
+        }
         console.log("zipped !");
         console.log(ebookFileName);
         chrome.runtime.sendMessage({
@@ -200,5 +217,8 @@ function _buildEbook(allPages, fromMenu=false) {
         }, 
             (response) => console.log(response)
         );
+    }).catch(function (e) {
+        console.log("Couldn't create zip");
+        console.log(e.message);
     });
 }

@@ -454,7 +454,11 @@ function _execRequest(request, sender, sendResponse) {
     }
     if (request.type === 'downloadEBook') {
         if (!isBlob(request.content)) {
-            sendResponse("eBook is not a Blob. Aborting");
+            sendResponse(
+                "eBook is not a Blob. Aborting"
+                + " typeof content: " + typeof request.content
+            );
+
             resetBusy();
         } else {
             try {
