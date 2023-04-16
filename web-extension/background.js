@@ -445,54 +445,38 @@ function _execRequest(request, sender, sendResponse) {
             sendResponse
         );
     }
-    function isBlob(obj) {
-        return (
-            typeof obj === "object"
-            && typeof obj.size === "number"
-            && typeof obj.type === "string"
-        );
-    }
-    function isUint8Array(arr) {
-        return (
-            typeof arr === "object"
-            && !Array.isArray(arr)
-            && arr.byteLength > 0
-            && arr.BYTES_PER_ELEMENT === 1
-        );
-    }
-    if (request.type === 'downloadEBook') {
-        if (!isUint8Array(request.content)) {
-            sendResponse(
-                "eBook is not a uint8array. Aborting"
-                + " typeof content: " + typeof request.content 
-                + " construct: " + request.content.constructor.name
-            );
-            resetBusy();
-        } else {
-            try {
-                chrome.downloads.download(
-                    {
-                    'saveAs': true,
-                    'url': URL.createObjectURL(
-                        new Blob(request.content, {
-                            type: "application/epub+zip",
-                        }), {
-                            type: "application/epub+zip",
-                        }),
-                    //TODO listent downloads.onChanged
-                    //https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download
-                    'filename': request.filename.replace(/[<>"*|:]/g, "")
 
-                    },
-                    function (downloadId) {
-                        console.log("done " + downloadId);
-                        resetBusy();
-                    }
-                );
-            } catch (e) {
-                sendResponse(e.message);
-                resetBusy();
+    if (request.type === 'downloadEBook') {
+        try {
+//Chromium does not support Blob as message content
+            const byteCharacters = atob(request.content);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i) & 0xFF;
             }
+            chrome.downloads.download(
+                {
+                'saveAs': true,
+                'url': URL.createObjectURL(
+                    new Blob(
+                        [new Uint8Array(byteNumbers)],
+                        {type: request.mime,}
+                    ),
+                    {type: request.mime}
+                ),
+//TODO listent downloads.onChanged
+//https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download
+                'filename': request.filename.replace(/[<>"*|:]/g, "")
+
+                },
+                function (downloadId) {
+                    console.log("done " + downloadId);
+                    resetBusy();
+                }
+            );
+        } catch (e) {
+            sendResponse(e.message);
+            resetBusy();
         }
     }
     return true;
