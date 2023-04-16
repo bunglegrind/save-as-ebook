@@ -188,7 +188,7 @@ function _buildEbook(allPages, fromMenu=false) {
 
     const mime = "application/epub+zip";
     zip.generateAsync({
-        type: "base64",
+        type: "array",
         mimeType: mime
     }).then(function(content) {
         console.log("zipped!");

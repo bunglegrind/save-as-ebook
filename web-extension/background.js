@@ -449,17 +449,12 @@ function _execRequest(request, sender, sendResponse) {
     if (request.type === 'downloadEBook') {
         try {
 //Chromium does not support Blob as message content
-            const byteCharacters = atob(request.content);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i) & 0xFF;
-            }
             chrome.downloads.download(
                 {
                 'saveAs': true,
                 'url': URL.createObjectURL(
                     new Blob(
-                        [new Uint8Array(byteNumbers)],
+                        [Uint8Array.from(request.content)],
                         {type: request.mime,}
                     ),
                     {type: request.mime}
