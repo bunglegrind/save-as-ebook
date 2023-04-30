@@ -253,14 +253,15 @@ function extractCss(includeStyle, appliedStyles) {
             }
 
             if (!isVisible(pre)) {
-                pre.outerHTML = "";
+//Workaround: I think I should clone the visible nodes in a new DOM-like structure
+                pre.innerHTML = "";
             } else {
                 if (pre.tagName.toLowerCase() === "svg") return;
 
                 const elementId = pre.tagName + "-" + generateRandomNumber(true);
                 let tmpName = generateRandomTag(2) + i;
                 cssClassesToTmpIds[elementId] = tmpName;
-                const  tmpNewCss = {};
+                const tmpNewCss = {};
                 const styles = window.getComputedStyle(pre);
 
                 for (let cssTagName of supportedCss.concat(inheritedCss)) {
