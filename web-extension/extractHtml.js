@@ -75,6 +75,13 @@ var supportedCss = [
 var inheritedCss = [];
 //////
 
+//TODO no idea on how to manage web components. for the moment I'll replace them 
+//with a div
+var webComponents = [
+    "turbo-frame",
+    "readme-toc"
+];
+
 function getImageSrc(srcTxt) {
     if (!srcTxt) {
         return '';
@@ -423,6 +430,17 @@ function prepareMaths(root) {
         math.setAttribute("xmlns", "http://www.w3.org/1998/Math/MathML");
     });
 }
+
+function replaceWebComponents(root) {
+    webComponents.forEach(function (component) {
+        root.querySelectorAll(component).forEach(function (element) {
+            const div = document.createElement("div");
+            div.innerHTML = element.innerHTML;
+            element.replaceWith(div);
+        });
+    });
+}
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (!["extract-page", "extract-selection"].includes(request.type)) {
         return;
@@ -450,6 +468,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         prepareImages(content);
         prepareAnchors(content);
         prepareMaths(content);
+        replaceWebComponents(content);
         //remove not allowed tags
         content.querySelectorAll("*").forEach(function (node) {
             if (!allowedTags.includes(node.tagName.toLowerCase())) {
