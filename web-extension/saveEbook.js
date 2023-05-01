@@ -185,18 +185,24 @@ function _buildEbook(allPages, fromMenu=false) {
     } catch (error) {
         console.log(error);
     }
-    
 
+    const mime = "application/epub+zip";
     zip.generateAsync({
-        type: "blob",
-        mimeType: "application/epub+zip"
+        type: "array",
+        mimeType: mime
     }).then(function(content) {
-        console.log("zipped !");
+        console.log("zipped!");
         console.log(ebookFileName);
         chrome.runtime.sendMessage({
             type: 'downloadEBook',
             content,
+            mime,
             filename: ebookFileName
-        });
+        }, 
+            (response) => console.log(response)
+        );
+    }).catch(function (e) {
+        console.log("Couldn't create zip");
+        console.log(e.message);
     });
 }

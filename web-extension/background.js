@@ -266,23 +266,32 @@ function _execRequest(request, sender, sendResponse) {
         );
     }
     if (request.type === 'downloadEBook') {
-        chrome.downloads.download(
-            {
-            'saveAs': true,
-            'url': URL.createObjectURL(
-                request.content, {
-                    type: "application/epub+zip",
-                }),
+        try {
+//Chromium does not support Blob as message content
+            chrome.downloads.download(
+                {
+                'saveAs': true,
+                'url': URL.createObjectURL(
+                    new Blob(
+                        [Uint8Array.from(request.content)],
+                        {type: request.mime}
+                    ),
+                    {type: request.mime}
+                ),
 //TODO listent downloads.onChanged
 //https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download
-            'filename': request.filename.replace(/[<>"*|:]/g, "")
+                'filename': request.filename.replace(/[<>"*|:]/g, "")
 
-            },
-            function (downloadId) {
-                console.log("done " + downloadId);
-                core.removeWarn();
-            }
-        );
+                },
+                function (downloadId) {
+                    console.log("done " + downloadId);
+                    core.removeWarn();
+                }
+            );
+        } catch (e) {
+            sendResponse(e.message);
+            core.removeWarn();
+        }
     }
     return true;
 }

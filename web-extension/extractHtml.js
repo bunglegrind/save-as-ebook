@@ -73,7 +73,15 @@ var supportedCss = [
 var inheritedCss = [];
 //////
 
+//TODO no idea on how to manage web components. for the moment I'll replace them 
+//with a div
+const webComponents = [
+    "turbo-frame",
+    "readme-toc"
+];
+
 function getImageSrc(srcTxt = "") {
+
     srcTxt = srcTxt.trim();
     if (srcTxt === "") {
         return "";
@@ -237,14 +245,15 @@ function extractCss(includeStyle) {
             }
 
             if (!isVisible(pre)) {
-                pre.outerHTML = "";
+//Workaround: I think I should clone the visible nodes in a new DOM-like structure
+                pre.innerHTML = "";
             } else {
                 if (pre.tagName.toLowerCase() === "svg") return;
 
                 const elementId = pre.tagName + "-" + generateRandomNumber(true);
                 let tmpName = generateRandomTag(2) + i;
                 cssClassesToTmpIds[elementId] = tmpName;
-                const  tmpNewCss = {};
+                const tmpNewCss = {};
                 const styles = window.getComputedStyle(pre);
 
                 for (let cssTagName of supportedCss.concat(inheritedCss)) {
@@ -408,6 +417,17 @@ function prepareMaths(root) {
         math.setAttribute("xmlns", "http://www.w3.org/1998/Math/MathML");
     });
 }
+
+function replaceWebComponents(root) {
+    webComponents.forEach(function (component) {
+        root.querySelectorAll(component).forEach(function (element) {
+            const div = document.createElement("div");
+            div.innerHTML = element.innerHTML;
+            element.replaceWith(div);
+        });
+    });
+}
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (!["page", "selection"].includes(request.type)) {
         return;
@@ -435,6 +455,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         prepareImages(content);
         prepareAnchors(content);
         prepareMaths(content);
+        replaceWebComponents(content);
         //remove not allowed tags
         content.querySelectorAll("*").forEach(function (node) {
             if (!allowedTags.includes(node.tagName.toLowerCase())) {
