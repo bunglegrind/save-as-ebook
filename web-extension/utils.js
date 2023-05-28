@@ -4,19 +4,17 @@ function getBaseUrl() {
         return base.getAttribute("href");
     }
     let url = window.location.href;
-    if (url.indexOf('?') > 0) {
-        url = window.location.href.split('?')[0];
+    if (url.indexOf("?") > 0) {
+        url = window.location.href.split("?")[0];
     }
-    url = url.substring(0, url.lastIndexOf('/') + 1);
+    url = url.substring(0, url.lastIndexOf("/") + 1);
     return url;
 }
 
 function getOriginUrl() {
-    let originUrl = window.location.origin;
-    if (!originUrl) {
-        originUrl = window.location.protocol + "//" + window.location.host;
-    }
-    return originUrl;
+    return window.location.origin ?? (
+        window.location.protocol + "//" + window.location.host
+    );
 }
 
 function getFileExtension(fileName) {
@@ -26,17 +24,17 @@ function getFileExtension(fileName) {
         if (isBase64Img(fileName)) {
             tmpFileName = getBase64ImgType(fileName);
         } else {
-            tmpFileName = fileName.split('.').pop();
+            tmpFileName = fileName.split(".").pop();
         }
 
-        if (tmpFileName.indexOf('?') > 0) {
-            tmpFileName = tmpFileName.split('?')[0];
+        if (tmpFileName.indexOf("?") > 0) {
+            tmpFileName = tmpFileName.split("?")[0];
         }
         tmpFileName = tmpFileName.toLowerCase();
-        if (tmpFileName === 'jpg') {
-            tmpFileName = 'jpeg';
-        } else if (tmpFileName === 'svg+xml') {
-            tmpFileName = 'svg';
+        if (tmpFileName === "jpg") {
+            tmpFileName = "jpeg";
+        } else if (tmpFileName === "svg+xml") {
+            tmpFileName = "svg";
         } 
 
         if (['png', 'gif', 'jpeg', 'svg'].indexOf(tmpFileName.trim()) < 0) {

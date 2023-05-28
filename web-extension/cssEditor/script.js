@@ -36,7 +36,6 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
             //         `#css-Editor-${id}`
             //     ).style.display = value;
             // });
-            
             const setDisplay = function (value) {
                 return function (id) {
                     select(id).style.display = value;
@@ -47,7 +46,7 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
             const displayInlineBlock = setDisplay("inline-block");
 
             const body = document.querySelector("body");
-            body.innerHTML += html;
+            body.append(html);
             const modal = select("Modal");
             const existingStyles = select("selectStyle");
 
