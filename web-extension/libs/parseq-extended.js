@@ -164,6 +164,12 @@ function default_import(url) {
     };
 }
 
+function dynamic_import(url) {
+    return function dynamic_import_callback(callback) {
+        import(url).then(callback).catch((e) => callback(undefined, e));
+    };
+}
+
 export default Object.freeze({
     ...parseq,
     wrap_reason,
@@ -179,5 +185,6 @@ export default Object.freeze({
     apply_fallback,
     apply_parallel,
     apply_parallel_object,
-    default_import
+    default_import,
+    dynamic_import
 });

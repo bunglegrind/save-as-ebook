@@ -4,13 +4,13 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
     pq.parallel_object({
         htmlTemplate: pq.default_import(local("./cssEditor/template.js")),
         adapter: pq.default_import(local("./browser-adapter.js")),
-        // r: pq.default_import(local("./node_modules/ramda/es/index.js"))
+        R: pq.dynamic_import(local("./node_modules/ramda/es/index.js"))
     })(function (value, reason) {
         if (value === undefined) {
             console.log("Error in cssEditor page");
             return console.log(reason);
         }
-        const {htmlTemplate, adapter} = value;
+        const {htmlTemplate, adapter, R} = value;
         const html = htmlTemplate(translate);
 
 
@@ -25,22 +25,22 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
         select("Modal")?.remove();
 
         let allStyles = [];
-            let currentStyle;
+        let currentStyle;
         let currentStyleIndex = -1;
 
         showEditor();
 
         function showEditor() {
-            // const setDisplay = r.curry(function (value, id) {
-            //     document.querySelector(
-            //         `#css-Editor-${id}`
-            //     ).style.display = value;
-            // });
-            const setDisplay = function (value) {
-                return function (id) {
-                    select(id).style.display = value;
-                };
-            };
+            const setDisplay = R.curry(function (value, id) {
+                document.querySelector(
+                    `#css-Editor-${id}`
+                ).style.display = value;
+            });
+            // const setDisplay = function (value) {
+            //     return function (id) {
+            //         select(id).style.display = value;
+            //     };
+            // };
             const displayNone = setDisplay("none");
             const displayBlock = setDisplay("block");
             const displayInlineBlock = setDisplay("inline-block");
