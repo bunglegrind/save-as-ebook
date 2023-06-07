@@ -10,21 +10,28 @@
 */
 import parseq from "./parseq.js";
 
-function do_nothing(cb, v) {
-    return cb(v);
-}
-
-function promise_requestorize(promise) {
-    return function (callback) {
-        promise.then(callback).catch((e) => callback(undefined, e));
+function delay(ms) {
+    return function (unary) {
+        return function delay_requestor(cb, v) {
+            const id = setTimeout(function (v) {
+                let result;
+                try {
+                    result = unary(v);
+                } catch (error) {
+                    return cb(undefined, error);
+                }
+                return cb(result);
+            }, ms, v);
+            return function () {
+                clearTimeout(id);
+            };
+        };
     };
 }
 
-function constant(v) {
-    return function requestor_constant(callback) {
-        return callback(v);
-    };
-}
+const requestorize = delay(0);
+const do_nothing = requestorize((v) => v);
+const constant = (c) => requestorize(() => c);
 
 function if_else(condition, requestor_if, requestor_else) {
     return function (callback, value) {
@@ -37,16 +44,6 @@ function if_else(condition, requestor_if, requestor_else) {
 
 function when(condition, requestor) {
     return if_else(condition, requestor, do_nothing);
-}
-
-function requestorize(unary) {
-    return function requestor(callback, value) {
-        try {
-            return callback(unary(value));
-        } catch (exception) {
-            return callback(undefined, exception);
-        }
-    };
 }
 
 function wrap_reason(requestor) {
@@ -156,18 +153,43 @@ function make_requestor_factory(unary) {
     return wrap_requestor(requestorize(unary));
 }
 
-function default_import(url) {
-    return function dynamic_import_callback(callback) {
-        import(url).then(function (module) {
-            return callback(module["default"]);
-        }).catch((e) => callback(undefined, e));
+function promise_requestorize(promise, action = "executing promise") {
+    return function (callback) {
+        let is_called = false;
+        function promise_callback(value, reason) {
+            if (!is_called) {
+                is_called = true;
+                if (value === undefined) {
+                    const err = new Error(`Failed when ${action}`);
+                    err.evidence = reason;
+                    return callback(undefined, err);
+                }
+                return callback(value);
+            }
+            throw reason || `Callback failed when ${action}`;
+        }
+        promise.then(promise_callback).catch(function (e) {
+            promise_callback(undefined, e);
+        });
     };
 }
 
 function dynamic_import(url) {
-    return function dynamic_import_callback(callback) {
-        import(url).then(callback).catch((e) => callback(undefined, e));
-    };
+    return promise_requestorize(import(url), `importing ${url}`);
+}
+
+function dynamic_default_import(url) {
+    return parseq.sequence([
+        dynamic_import(url),
+        requestorize((m) => m["default"])
+    ]);
+}
+
+function factory(requestor, adapter) {
+    return parseq.sequence([
+        requestorize(adapter),
+        requestor
+    ]);
 }
 
 export default Object.freeze({
@@ -185,6 +207,8 @@ export default Object.freeze({
     apply_fallback,
     apply_parallel,
     apply_parallel_object,
-    default_import,
-    dynamic_import
+    dynamic_default_import,
+    dynamic_import,
+    delay,
+    factory
 });
