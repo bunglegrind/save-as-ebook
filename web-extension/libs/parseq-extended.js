@@ -185,12 +185,10 @@ function dynamic_default_import(url) {
     ]);
 }
 
-function factory(requestor, adapter) {
-    return parseq.sequence([
-        requestorize(adapter),
-        requestor
-    ]);
-}
+const factory = (requestor) => (adapter) => parseq.sequence([
+    requestorize(adapter),
+    requestor
+]);
 
 export default Object.freeze({
     ...parseq,

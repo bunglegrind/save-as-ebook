@@ -34,33 +34,19 @@ function executeScript(tabId) {
     }
 }
 
-// function sendMessage(message) {
-//     return function sendMessageRequestor(callback, tabId) {
-//         chrome.tabs.sendMessage(tabId, message, function (response) {
-//             if (chrome.runtime.lastError) {
-//                 return callback(undefined, `sendMessage failed: tab - ${tabId} ${chrome.runtime.lastError}`);
-//             }
-//             return callback(response);
-//         });
-//     }
-// }
-
-function sendMessage(message, builder = function (v1, v2) {
-    return {
-        message: v1,
-        tabId: v2
-    };
-}) {
-    return function sendMessageRequestor(callback, value) {
-        const {message, tabId} = builder(message, value);
+const sendMessage = parseq.factory(
+    function sendMessageRequestor(callback, {message, tabId}) {
         chrome.tabs.sendMessage(tabId, message, function (response) {
             if (chrome.runtime.lastError) {
-                return callback(undefined, `sendMessage failed: tab - ${tabId} ${chrome.runtime.lastError}`);
+                return callback(
+                    undefined,
+                    `sendMessage failed: tab - ${tabId} ${chrome.runtime.lastError}`
+                );
             }
             return callback(response);
         });
     }
-}
+);
 
 function sendRuntimeMessage(message) {
     return function sendRuntimeMessageRequestor(callback) {

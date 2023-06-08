@@ -130,7 +130,7 @@ function savePage() {//TODO: action and tabId may be a closure for the following
         } else {
             message = {"shortcut": "build-ebook", response: [response]};
         }
-        return adapter.sendMessage(message)(callback, tabId);
+        return adapter.sendMessage((v) => v)(callback, {message, tabId});
     }
 }
 

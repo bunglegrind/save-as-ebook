@@ -22,11 +22,13 @@ function executeCommand(command) {
         parseq.requestorize(R.pipe(R.head, R.prop("id"))),
         (
             core.isBusy()
-            ? adapter.sendMessage({
-                "alert": (
-                    "Work in progress! Please wait until the current " +
-                    "eBook is generated!"
-                )
+            ? adapter.sendMessage(function () {
+                return {
+                    "alert": (
+                        "Work in progress! Please wait until the current "
+                        + "eBook is generated!"
+                    )
+                };
             })
             : parseq.sequence([
 //WARNING: when saving page, the book buffer is reset
@@ -62,10 +64,10 @@ function executeCommand(command) {
                                 processResponse
                             ])
                         }),
-                        adapter.sendMessage(undefined, function (v1, v2) {
+                        adapter.sendMessage(function ({message, tab}) {
                             return {
-                                message: v2.message,
-                                tabId: v2.tab
+                                message,
+                                tabId: v.tab
                             };
                         }),
                         parseq.requestorize(R.tap(core.removeWarn))
@@ -151,13 +153,10 @@ function extractCustomStyle({tab, styles}) {
 
 function send({subject}) {
     return parseq.sequence([
-        adapter.sendMessage(subject, function (v1, v2) {
+        adapter.sendMessage(function ({includeStyle}) {
             return {
-                message: {
-                    type: v1,
-                    includeStyle: v2.includeStyle
-                },
-                tabId: v2.tab
+                type: subject,
+                includeStyle
             };
         }),
     ]);
