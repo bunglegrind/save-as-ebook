@@ -2,8 +2,8 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
     const pq = m["default"];
 
     pq.parallel_object({
-        htmlTemplate: pq.default_import(local("./cssEditor/template.js")),
-        adapter: pq.default_import(local("./browser-adapter.js")),
+        htmlTemplate: pq.dynamic_default_import(local("./cssEditor/template.js")),
+        adapter: pq.dynamic_default_import(local("./browser-adapter.js")),
         R: pq.dynamic_import(local("./node_modules/ramda/es/index.js"))
     })(function (value, reason) {
         if (value === undefined) {

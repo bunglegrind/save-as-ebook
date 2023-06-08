@@ -25,8 +25,8 @@ const setTitle = toStorage("title");
 const setStyles = toStorage("styles");
 
 const clearBook = parseq.parallel([
-    removeFromStorage("allPages"),
-    removeFromStorage("title")
+    removeFromStorage(() => Object.fromEntries([["key", "allPages"]])),
+    removeFromStorage(() => Object.fromEntries([["key", "title"]]))
 ]);
 
 
@@ -112,13 +112,16 @@ function savePage() {//TODO: action and tabId may be a closure for the following
         const justAddToBuffer = false;
         const type = "extract-page";
 
-        return adapter.sendMessage();
-
-        adapter.sendMessage({
-                type,
-                 includeStyle,
-                 appliedStyles
-            })(callback, tabId);
+        return adapter.sendMessage(function () {
+           return {
+               message: {
+                   type,
+                   includeStyle,
+                   appliedStyles,
+               },
+               tabId
+           };
+        });
     }
 
     function generateOutcome(callback, response) {

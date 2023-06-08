@@ -33,20 +33,18 @@ function executeScript(tabId) {
         });
     }
 }
-
-const sendMessage = parseq.factory(
-    function sendMessageRequestor(callback, {message, tabId}) {
-        chrome.tabs.sendMessage(tabId, message, function (response) {
-            if (chrome.runtime.lastError) {
-                return callback(
-                    undefined,
-                    `sendMessage failed: tab - ${tabId} ${chrome.runtime.lastError}`
-                );
-            }
-            return callback(response);
-        });
-    }
-);
+function sendMessageRequestor(callback, {message, tabId}) {
+    chrome.tabs.sendMessage(tabId, message, function (response) {
+        if (chrome.runtime.lastError) {
+            return callback(
+                undefined,
+                `sendMessage failed: tab - ${tabId} ${chrome.runtime.lastError}`
+            );
+        }
+        return callback(response);
+    });
+}
+const sendMessage = parseq.factory(sendMessageRequestor);
 
 function sendRuntimeMessage(message) {
     return function sendRuntimeMessageRequestor(callback) {
@@ -113,17 +111,19 @@ function toStorage(key) {
     };
 }
 
-function removeFromStorage(key, builder = (key, ignore) => key) {
-    return function removeFromStorageRequestor(callback, value = "") {
-        const key = builder(keu, value);
-        chrome.storage.local.remove(key, function () {
-            if (chrome.runtime.lastError) {
-                return callback(undefined, `removeFromStorage failed: key - ${key} ${chrome.runtime.lastError}`);
-            }
-            return callback(value);
-        });
-    };
+function removeFromStorageRequestor(callback, {key, value}) {
+    chrome.storage.local.remove(key, function () {
+        if (chrome.runtime.lastError) {
+            return callback(
+                undefined,
+                `removeFromStorage failed: key - ${key} ${chrome.runtime.lastError}`
+            );
+        }
+        return callback(value ?? "");
+    });
 }
+
+const removeFromStorage = parseq.factory(removeFromStorageRequestor);
 
 function getAllCommands(callback) {
     chrome.commands.getAll(callback);

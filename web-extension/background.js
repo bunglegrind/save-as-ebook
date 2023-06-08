@@ -22,12 +22,15 @@ function executeCommand(command) {
         parseq.requestorize(R.pipe(R.head, R.prop("id"))),
         (
             core.isBusy()
-            ? adapter.sendMessage(function () {
+            ? adapter.sendMessage(function (tabId) {
                 return {
-                    "alert": (
-                        "Work in progress! Please wait until the current "
-                        + "eBook is generated!"
-                    )
+                    message: {
+                        "alert": (
+                            "Work in progress! Please wait until the current "
+                            + "eBook is generated!"
+                        )
+                    },
+                    tabId
                 };
             })
             : parseq.sequence([
@@ -67,7 +70,7 @@ function executeCommand(command) {
                         adapter.sendMessage(function ({message, tab}) {
                             return {
                                 message,
-                                tabId: v.tab
+                                tabId: tab
                             };
                         }),
                         parseq.requestorize(R.tap(core.removeWarn))
@@ -149,14 +152,17 @@ function extractCustomStyle({tab, styles}) {
             : ""
         )
     };
-} 
+}
 
 function send({subject}) {
     return parseq.sequence([
-        adapter.sendMessage(function ({includeStyle}) {
+        adapter.sendMessage(function ({tab, includeStyle}) {
             return {
-                type: subject,
-                includeStyle
+                message: {
+                    type: subject,
+                    includeStyle
+                },
+                tabId: tab
             };
         }),
     ]);
