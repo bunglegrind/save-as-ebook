@@ -1,13 +1,18 @@
 /*jslint
-    node, unordered
-*/
+    unordered
+    */
+/*global
+    setTimeout, clearTimeout
+    */
 /*property
-    apply_fallback, apply_parallel, apply_parallel_object, apply_race, catch,
-    constant, create, do_nothing, fallback, forEach, freeze, if_else, keys,
+    apply_fallback, apply_parallel, apply_parallel_object, apply_race, assign,
+    catch, constant, create, default, delay, do_nothing, dynamic_default_import,
+    dynamic_import, evidence, factory, fallback, forEach, freeze, if_else, keys,
     make_requestor_factory, map, parallel, parallel_object,
-    promise_requestorize, race, reason, requestorize, then, value, when,
-    wrap_reason, wrap_requestor
+    promise_requestorize, race, reason, requestorize, sequence, then, value,
+    when, wrap_reason
 */
+
 import parseq from "./parseq.js";
 
 function delay(ms) {
@@ -114,14 +119,6 @@ function apply_parallel(
     };
 }
 
-function wrap_requestor(requestor) {
-    return function (value) {
-        return function (callback) {
-            return requestor(callback, value);
-        };
-    };
-}
-
 function apply_parallel_object(
     requestor_factory,
     time_limit,
@@ -149,9 +146,6 @@ function apply_parallel_object(
     };
 }
 
-function make_requestor_factory(unary) {
-    return wrap_requestor(requestorize(unary));
-}
 
 function promise_requestorize(promise, action = "executing promise") {
     return function (callback) {
@@ -181,20 +175,50 @@ function dynamic_import(url) {
 function dynamic_default_import(url) {
     return parseq.sequence([
         dynamic_import(url),
-        requestorize((m) => m["default"])
+        requestorize((m) => m.default)
     ]);
 }
 
-const factory = (requestor) => (adapter) => parseq.sequence([
-    requestorize(adapter),
-    requestor
-]);
+function factory(requestor) {
+    return function (adapter) {
+        function default_adapter(precomputed) {
+            return function (value) {
+//default: both values are object, so we give the requestor their merge
+                if (
+                    typeof precomputed === "object"
+                    && !Array.isArray(precomputed)
+                ) {
+                    return Object.assign(
+                        {},
+                        precomputed,
+                        value
+                    );
+                }
+//otherwise, default behavior is to provide only the precomputed value
+//in order to have a simple make_requestor_factory
+                return precomputed;
+            };
+        }
+        if (typeof adapter !== "function") {
+            adapter = default_adapter(adapter);
+        }
+        return parseq.sequence([
+            requestorize(adapter),
+            requestor
+        ]);
+    };
+}
+
+function make_requestor_factory(unary) {
+    return factory(requestorize(unary));
+}
 
 export default Object.freeze({
+/*jslint-disable*/
     ...parseq,
+/*jslint-enable*/
     wrap_reason,
     constant,
-    wrap_requestor,
     requestorize,
     make_requestor_factory,
     promise_requestorize,
