@@ -3,8 +3,6 @@ import parseq from "./libs/parseq-extended.js";
 import adapter from "./browser-adapter.js";
 import * as R from "./node_modules/ramda/es/index.js";
 
-let tab;
-
 const currentTab = {
     currentWindow: true,
     active: true
@@ -21,10 +19,7 @@ function executeCommand(command) {
 
     parseq.sequence([
         adapter.getTabs,
-        parseq.requestorize(R.tap(function (value) {
-            tab = value;
-        })),
-        parseq.requestorize(R.pipe(R.head, R.prop("id"), R.objOf("tabId"))),
+        parseq.requestorize(R.pipe(R.head, R.pick(["id", "url"]), R.objOf("tab"))),
         (
             core.isBusy()
             ? adapter.sendMessage({
@@ -61,6 +56,7 @@ function executeCommand(command) {
                                 })
                             ])
                         }),
+                        parseq.requestorize(R.tap(console.log)),
                         parseq.parallel_merge({
                             message: parseq.sequence([
                                 adapter.sendMessage(function ({tabId, includeStyle}) {
@@ -127,8 +123,8 @@ function commandToAction(command) {
     throw new Error("Command unrecognized");
 }
 
-function extractCustomStyle({tabId, styles}) {
-    const currentUrl = tab[0].url.replace(/(http[s]?:\/\/|www\.)/i, "").toLowerCase();
+function extractCustomStyle({tab, styles}) {
+    const currentUrl = tab.url.replace(/(http[s]?:\/\/|www\.)/i, "").toLowerCase();
 
     //We can write also as filter + map
     const allMatchingStyles = styles.reduce(function (acc, style, i) {
@@ -145,7 +141,7 @@ function extractCustomStyle({tabId, styles}) {
 
     allMatchingStyles.sort((a, b) => b.length - a.length);
     return {
-        tabId,
+        tabId: tab.id,
         style: (
             allMatchingStyles.length > 0
             ? styles[allMatchingStyles[0].index].style

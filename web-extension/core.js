@@ -58,7 +58,7 @@ function savePage() {//TODO: action and tabId may be a closure for the following
 
     function prepareStyles(callback, value) {
         console.log(value);
-        const [tab, includeStyle, {styles}] = value;
+        const [tab, includeStyle, {style}] = value;
         tabId = tab[0].id;
         const appliedStyles = [];
 
