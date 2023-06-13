@@ -12,16 +12,15 @@ function getTabs(callback, props) {
     );
 }
 
-function insertCss(tabId) {
-    return function insertCssRequestor(callback, message) {
-        chrome.tabs.insertCSS(tabId, message, function () {
-            if (chrome.runtime.lastError) {
-                return callback(undefined, `executedScript failed: tab - ${tabId} ${chrome.runtime.lastError}`);
-            }
-            return callback(tabId);
-        });
-    };
+function insertCssRequestor(callback, {tabId, message}) {
+    chrome.tabs.insertCSS(tabId, message, function () {
+        if (chrome.runtime.lastError) {
+            return callback(undefined, `executedScript failed: tab - ${tabId} ${chrome.runtime.lastError}`);
+        }
+        return callback(tabId);
+    });
 }
+const insertCss = parseq.factory(insertCssRequestor);
 
 function executeScript(tabId) {
     return function executeScriptRequestor(callback, script) {

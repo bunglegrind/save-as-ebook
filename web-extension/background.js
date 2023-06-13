@@ -3,6 +3,8 @@ import parseq from "./libs/parseq-extended.js";
 import adapter from "./browser-adapter.js";
 import * as R from "./node_modules/ramda/es/index.js";
 
+let tab;
+
 const currentTab = {
     currentWindow: true,
     active: true
@@ -19,60 +21,58 @@ function executeCommand(command) {
 
     parseq.sequence([
         adapter.getTabs,
-        parseq.requestorize(R.pipe(R.head, R.prop("id"))),
+        parseq.requestorize(R.tap(function (value) {
+            tab = value;
+        })),
+        parseq.requestorize(R.pipe(R.head, R.prop("id"), R.objOf("tabId"))),
         (
             core.isBusy()
-            ? adapter.sendMessage(function (tabId) {
-                return {
+            ? adapter.sendMessage({
                     message: {
                         "alert": (
                             "Work in progress! Please wait until the current "
                             + "eBook is generated!"
                         )
-                    },
-                    tabId
-                };
-            })
+                    }
+                })
             : parseq.sequence([
 //WARNING: when saving page, the book buffer is reset
                 // if (!insertInBook) {
                 //     _execRequest({type: "clear book"});
                 // }
                 parseq.requestorize(R.tap(core.setWarn)),
-                parseq.parallel_object({
-                    includeStyle: core.getIncludeStyle,
-                    tab: parseq.do_nothing
+                parseq.parallel_merge({
+                    includeStyle: core.getIncludeStyle
                 }),
                 parseq.when(
                     ({includeStyle}) => includeStyle,
                     parseq.sequence([
-                        parseq.parallel_object({
-                            tab: parseq.requestorize(R.prop("tab")),
-                            includeStyle: parseq.requestorize(R.prop("includeStyle")),
+                        parseq.parallel_merge({
                             css: parseq.sequence([
-                                parseq.parallel_object({
+                                parseq.parallel_merge({
                                     styles: core.getStyles,
-                                    tab: parseq.requestorize(R.prop("tab"))
                                 }),
                                 parseq.requestorize(extractCustomStyle),
-                                (cb, {tab, style}) => adapter.insertCss(
-                                    {code: style}
-                                )(cb, tab)
+                                adapter.insertCss(function ({tabId, style}) {
+                                    return {
+                                        tabId,
+                                        message: {code: style}
+                                    };
+                                })
                             ])
                         }),
-                        parseq.parallel_object({
-                            tab: parseq.requestorize(R.prop("tab")),
-                            message:parseq.sequence([
-                                send(action),
+                        parseq.parallel_merge({
+                            message: parseq.sequence([
+                                adapter.sendMessage(function ({tabId, includeStyle}) {
+                                    return {
+                                        tabId,
+                                        message: {type: action, includeStyle}
+                                    }
+                                }),
                                 processResponse
                             ])
                         }),
-                        adapter.sendMessage(function ({message, tab}) {
-                            return {
-                                message,
-                                tabId: tab
-                            };
-                        }),
+                        adapter.sendMessage(),
                         parseq.requestorize(R.tap(core.removeWarn))
                     ])
                 )
@@ -127,7 +127,7 @@ function commandToAction(command) {
     throw new Error("Command unrecognized");
 }
 
-function extractCustomStyle({tab, styles}) {
+function extractCustomStyle({tabId, styles}) {
     const currentUrl = tab[0].url.replace(/(http[s]?:\/\/|www\.)/i, "").toLowerCase();
 
     //We can write also as filter + map
@@ -145,7 +145,7 @@ function extractCustomStyle({tab, styles}) {
 
     allMatchingStyles.sort((a, b) => b.length - a.length);
     return {
-        tab,
+        tabId,
         style: (
             allMatchingStyles.length > 0
             ? styles[allMatchingStyles[0].index].style
@@ -154,19 +154,6 @@ function extractCustomStyle({tab, styles}) {
     };
 }
 
-function send({subject}) {
-    return parseq.sequence([
-        adapter.sendMessage(function ({tab, includeStyle}) {
-            return {
-                message: {
-                    type: subject,
-                    includeStyle
-                },
-                tabId: tab
-            };
-        }),
-    ]);
-}
 
 function processResponse(callback, response) {
     if (!response) {
