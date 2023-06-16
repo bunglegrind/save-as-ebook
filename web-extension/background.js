@@ -56,20 +56,19 @@ function executeCommand(command) {
                                 })
                             ])
                         }),
-                        parseq.requestorize(R.tap(console.log)),
                         parseq.parallel_merge({
                             message: parseq.sequence([
-                                adapter.sendMessage(function ({tabId, includeStyle}) {
+                                parseq.requestorize(R.tap(core.removeWarn)),
+                                adapter.sendMessage(function ({tab, includeStyle}) {
                                     return {
-                                        tabId,
+                                        tabId: tab.id,
                                         message: {type: action, includeStyle}
                                     }
                                 }),
                                 processResponse
                             ])
                         }),
-                        adapter.sendMessage(),
-                        parseq.requestorize(R.tap(core.removeWarn))
+                        adapter.sendMessage()
                     ])
                 )
             ])
@@ -79,6 +78,7 @@ function executeCommand(command) {
 
     function my_callback(value, reason) {
         if (value === undefined) {
+            console.log(reason.evidence);
             return console.log(reason);
         }
     }

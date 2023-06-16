@@ -7,13 +7,23 @@
 /*property
     apply_fallback, apply_parallel, apply_parallel_object, apply_race, assign,
     catch, constant, create, default, delay, do_nothing, dynamic_default_import,
-    dynamic_import, evidence, factory, fallback, forEach, freeze, if_else, keys,
-    make_requestor_factory, map, parallel, parallel_object,
-    promise_requestorize, race, reason, requestorize, sequence, then, value,
-    when, wrap_reason
+    dynamic_import, evidence, factory, fallback, forEach, freeze, if_else,
+    isArray, keys, make_requestor_factory, map, parallel, parallel_merge,
+    parallel_object, promise_requestorize, race, reason, requestorize, sequence,
+    then, value, when, wrap_reason
 */
 
 import parseq from "./parseq.js";
+
+function make_reason(factory_name, excuse, evidence) {
+    const reason = new Error("parseq." + factory_name + (
+        excuse === undefined
+        ? ""
+        : ": " + excuse
+    ));
+    reason.evidence = evidence;
+    return reason;
+}
 
 function delay(ms) {
     return function (unary) {
@@ -23,7 +33,10 @@ function delay(ms) {
                 try {
                     result = unary(v);
                 } catch (error) {
-                    return cb(undefined, error);
+                    return cb(
+                        undefined,
+                        make_reason("delay", "", error)
+                    );
                 }
                 return cb(result);
             }, ms, v);
@@ -72,7 +85,10 @@ function apply_race(
                 throttle
             )(callback);
         } catch (e) {
-            return callback(undefined, e);
+            return callback(
+                undefined,
+                make_reason("apply_race", "", e)
+            );
         }
     };
 }
@@ -88,7 +104,10 @@ function apply_fallback(
                 time_limit
             )(callback);
         } catch (e) {
-            return callback(undefined, e);
+            return callback(
+                undefined,
+                make_reason("apply_fallback", "", e)
+            );
         }
     };
 }
@@ -114,7 +133,10 @@ function apply_parallel(
                 throttle
             )(callback);
         } catch (e) {
-            return callback(undefined, e);
+            return callback(
+                undefined,
+                make_reason("apply_parallel", "", e)
+            );
         }
     };
 }
@@ -141,7 +163,10 @@ function apply_parallel_object(
             )(callback);
 
         } catch (e) {
-            return callback(undefined, e);
+            return callback(
+                undefined,
+                make_reason("apply_parallel_object", "", e)
+            );
         }
     };
 }
@@ -174,16 +199,29 @@ function promise_requestorize(promise, action = "executing promise") {
             if (!is_called) {
                 is_called = true;
                 if (value === undefined) {
-                    const err = new Error(`Failed when ${action}`);
-                    err.evidence = reason;
-                    return callback(undefined, err);
+                    return callback(
+                        undefined,
+//first callback call: promise has thrown
+                        make_reason(
+                            "promise_requestorize",
+                            `Failed when ${action}`,
+                            reason
+                        )
+                    );
                 }
                 return callback(value);
             }
-            throw reason || `Callback failed when ${action}`;
+//second callback call: callback has thrown
+            const err = new Error(`Callback failed when ${action}`);
+            err.evidence = reason;
+            throw err;
         }
         promise.then(promise_callback).catch(function (e) {
-            promise_callback(undefined, e);
+//at this point we still don't know if the promise or the callback has thrown
+            promise_callback(
+                undefined,
+                e
+            );
         });
     };
 }

@@ -1,6 +1,7 @@
 import defaultStyles from "./defaultStyles.js";
 import warning from "./warning.js";
 import parseq from "./libs/parseq-extended.js";
+import * as R from "./node_modules/ramda/es/index.js";
 
 import adapter from "./browser-adapter.js";
 
@@ -42,12 +43,13 @@ function savePage() {//TODO: action and tabId may be a closure for the following
             getStyles,//We may optimize checking if custom styles are needed before asking all the styles
             clearBook//WARNING Deletes the book
         ]),
+        parseq.requestorize(R.tap(console.log)),
         prepareStyles,
         startJob,
         generateOutcome
     ])(function (value, reason) {
         if (value === undefined) {
-            return console.log(reason);
+            return console.log(reason + " " + JSON.stringify(reason.evidence || ""));
         }
         return console.log(`savePage: ${value}`);
     }, {
@@ -57,7 +59,6 @@ function savePage() {//TODO: action and tabId may be a closure for the following
 
 
     function prepareStyles(callback, value) {
-        console.log(value);
         const [tab, includeStyle, {style}] = value;
         tabId = tab[0].id;
         const appliedStyles = [];
