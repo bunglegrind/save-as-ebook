@@ -16,8 +16,8 @@
     function dispatch(type, justAddToBuffer) {
         console.debug("dispatch: " + type);
         document.getElementById('busy').style.display = 'block';
-        
         if (!core.isBusy()) {
+
             core[type](justAddToBuffer);
         }
 
@@ -76,7 +76,7 @@
         }
     });
 
-    function createStyleList(callback, styles) {
+    function createStyleList(callback, {styles}) {
         if (!styles || styles.length === 0) {
             return callback("success");
         }
@@ -138,10 +138,10 @@
 
     document.getElementById('includeStyleCheck').onclick = function () {
         let includeStyleCheck = document.getElementById('includeStyleCheck');
-        adapter.sendRuntimeMessage({
+        adapter.sendRuntimeMessage({message: {
                 type: "set include style",
                 includeStyle: includeStyleCheck.checked
-            })(function callback(value, reason) {
+            }})(function callback(value, reason) {
                 if (value === undefined) {
                     return console.log("reason: menu-set include style " + reason);
                 }
@@ -159,22 +159,18 @@
         pq.sequence([
             adapter.getTabs,
             firstTabId,
-            function injectScripts(callback, tabId) {
-                return pq.parallel([
-                    pq.wrap_requestor(adapter.insertCss(tabId))(
-                        {file: "/cssEditor/style.css"}
-                    ),
-                    pq.wrap_requestor(adapter.executeScript(tabId))(
-                        {file: "/cssEditor/script.js"}
-                    )
-                ])(callback, tabId);
-            },
-            function (callback, value) {
-                window.close();//closes menu
-                callback(value);
-            }
+            pq.parallel([
+                adapter.insertCss(function (tabId) {
+                    return {tabId, message: {file: "/cssEditor/style.css"}};
+                }),
+                adapter.executeScript(function (tabId) {
+                    return {tabId, script: {file: "/cssEditor/script.js"}};
+                })
+            ]),
+            pq.requestorize(R.tap(window.close))
         ])(function (value, reason) {
             if (value === undefined) {
+                console.log(reason.evidence ?? "");
                 return console.log(`Error - drawing style editor: ${reason}`);
             }
         }, {

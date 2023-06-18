@@ -48,23 +48,24 @@ function executeCommand(command) {
                                     styles: core.getStyles,
                                 }),
                                 parseq.requestorize(extractCustomStyle),
-                                adapter.insertCss(function ({tabId, style}) {
+                                adapter.insertCss(function ({tabId, styles}) {
                                     return {
                                         tabId,
-                                        message: {code: style}
+                                        message: {code: styles}
                                     };
                                 })
                             ])
                         }),
-                        parseq.requestorize(R.tap(console.log)),
                         parseq.parallel_merge({
                             message: parseq.sequence([
-                                adapter.sendMessage(function ({tabId, includeStyle}) {
-                                    return {
-                                        tabId,
-                                        message: {type: action, includeStyle}
+                                adapter.sendMessage(
+                                    function ({tab, includeStyle}) {
+                                        return {
+                                            tabId: tab.id,
+                                            message: {type: action, includeStyle}
+                                        }
                                     }
-                                }),
+                                ),
                                 processResponse
                             ])
                         }),
@@ -142,9 +143,9 @@ function extractCustomStyle({tab, styles}) {
     allMatchingStyles.sort((a, b) => b.length - a.length);
     return {
         tabId: tab.id,
-        style: (
+        styles: (
             allMatchingStyles.length > 0
-            ? styles[allMatchingStyles[0].index].style
+            ? styles[allMatchingStyles[0].index]?.style
             : ""
         )
     };
@@ -178,46 +179,51 @@ function processResponse(callback, response) {
 //MUST return true
 //https://developer.chrome.com/docs/extensions/reference/runtime/#event-onMessage
 function _execRequest(request, sender, sendResponse) {
-    function callback(value, reason) {
-        if (value === undefined) {
-            return console.log("reason: " + request.type + " " + reason);
+    function make_callback(f) {
+        return function callback(value, reason) {
+            if (value === undefined) {
+                return console.log("reason: " + request.type + " " + reason);
+            }
+            f(value);
+            return console.log("value: " + request.type + " " + value);
         }
-        return console.log("value: " + request.type + " " + value);
     }
+
+    const callback = make_callback(sendResponse);
 
 
     if (request.type === "get") {
-        core.getBook(sendResponse);
+        core.getBook(callback);
     }
     if (request.type === "set") {
         core.setBook(request);
     }
     if (request.type === "clear book") {
-        core.clearBook(sendResponse);
+        core.clearBook(callback);
     }
     if (request.type === "get title") {
-        core.getTitle(sendResponse);
+        core.getTitle(callback);
     }
     if (request.type === "set title") {
-        core.setTitle(sendResponse, request);
+        core.setTitle(callback, request);
     }
     if (request.type === "get styles") {
-        core.getStyles(sendResponse);
+        core.getStyles(callback);
     }
     if (request.type === "set styles") {
-        core.setStyles(sendResponse, request);
+        core.setStyles(callback, request);
     }
     if (request.type === "get current style") {
-        core.getCurrentStyle(sendResponse);
+        core.getCurrentStyle(callback);
     }
     if (request.type === "set current style") {
-        core.setCurrentStyle(sendResponse, request);
+        core.setCurrentStyle(callback, request);
     }
     if (request.type === "get include style") {
-        core.getIncludeStyle(sendResponse);
+        core.getIncludeStyle(callback);
     }
     if (request.type === "set include style") {
-        core.setIncludeStyle(sendResponse, request);
+        core.setIncludeStyle(callback, request);
     }
     if (request.type === "is busy?") {
         sendResponse({isBusy: core.isBusy()});

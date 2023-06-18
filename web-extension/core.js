@@ -1,6 +1,7 @@
 import defaultStyles from "./defaultStyles.js";
 import warning from "./warning.js";
 import parseq from "./libs/parseq-extended.js";
+import * as R from "./node_modules/ramda/es/index.js";
 
 import adapter from "./browser-adapter.js";
 
@@ -12,11 +13,11 @@ const {
 } = adapter;
 const warn = warning(20000);
 
-const getStyles = fromStorage("styles", defaultStyles);
-const getIncludeStyle = fromStorage("includeStyle", false);
-const getBook = fromStorage("allPages", []);
-const getTitle = fromStorage("title", "eBook");
-const getCurrentStyle = fromStorage("currentStyle", 0);
+const getStyles = fromStorage({key: "styles", defaultValue: defaultStyles});
+const getIncludeStyle = fromStorage({key: "includeStyle", defaultValue: false});
+const getBook = fromStorage({key: "allPages", defaultValue: []});
+const getTitle = fromStorage({key: "title", defaultValue: "eBook"});
+const getCurrentStyle = fromStorage({key: "currentStyle", defaultValue: 0});
 
 const setCurrentStyle = toStorage("currentStyle");
 const setIncludeStyle = toStorage("includeStyle");
@@ -36,12 +37,12 @@ function savePage() {//TODO: action and tabId may be a closure for the following
     let tabId;
 
     parseq.sequence([
-        parseq.parallel([
-            getTabs,
-            getIncludeStyle,
-            getStyles,//We may optimize checking if custom styles are needed before asking all the styles
-            clearBook//WARNING Deletes the book
-        ]),
+        parseq.parallel_object({
+            tab: getTabs,
+            includeStyle: getIncludeStyle,
+            styles: getStyles,//We may optimize checking if custom styles are needed before asking all the styles
+            ignore: clearBook//WARNING Deletes the book
+        }),
         prepareStyles,
         startJob,
         generateOutcome
@@ -57,8 +58,7 @@ function savePage() {//TODO: action and tabId may be a closure for the following
 
 
     function prepareStyles(callback, value) {
-        console.log(value);
-        const [tab, includeStyle, {style}] = value;
+        const {tab, includeStyle, styles} = value;
         tabId = tab[0].id;
         const appliedStyles = [];
 

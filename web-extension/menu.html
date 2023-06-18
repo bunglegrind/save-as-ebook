@@ -1,31 +1,31 @@
 <!DOCTYPE html>
 <html>
 
-<head>
-  <meta charset="utf-8">
-  <link rel="stylesheet" href="menu.css"/>
-</head>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="menu.css"/>
+  </head>
 
-<body>
-  <div class="menu-holder">
-    <div id="menuTitle"></div>
-    <hr/>
-    <div class="optionContainer">
+  <body>
+    <div class="menu-holder">
+      <div id="menuTitle"></div>
+      <hr/>
+      <div class="optionContainer">
         <input type="checkbox" name="button" id="includeStyleCheck">
         <label for="includeStyleCheck" id="includeStyle"></label>
+      </div>
+      <button id="editStyles" name="button"></button>
+      <hr/>
+      <div id="buttons"></div>
+      <hr/>
+      <button id="editChapters"></button>
     </div>
-    <button id="editStyles" name="button"></button>
-    <hr/>
-    <div id="buttons"></div>
-    <hr/>
-    <button id="editChapters"></button>
-  </div>
-  <div id="busy">
-    <div class="spinner"></div>
-    <div id="waitMessage" class="wait-message"></div>
-  </div>
+    <div id="busy">
+      <div class="spinner"></div>
+      <div id="waitMessage" class="wait-message"></div>
+    </div>
 
-  <script src="menu.js" charset="utf-8" type="module"></script>
-</body>
+    <script src="menu.js" charset="utf-8" type="module"></script>
+  </body>
 
 </html>
