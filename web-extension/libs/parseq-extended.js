@@ -236,8 +236,6 @@ function promise_requestorize(promise, action = "executing promise") {
             }
 //second callback call: callback has thrown
             const err = new Error(`Callback failed when ${action}`);
-            console.log(reason);
-            console.log(reason.evidence);
             err.evidence = reason;
             throw err;
         }

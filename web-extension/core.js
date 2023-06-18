@@ -48,7 +48,7 @@ function savePage() {//TODO: action and tabId may be a closure for the following
         generateOutcome
     ])(function (value, reason) {
         if (value === undefined) {
-            return console.log(reason);
+            return console.log(reason + " " + JSON.stringify(reason.evidence || ""));
         }
         return console.log(`savePage: ${value}`);
     }, {

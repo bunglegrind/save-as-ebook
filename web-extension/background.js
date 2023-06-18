@@ -58,6 +58,7 @@ function executeCommand(command) {
                         }),
                         parseq.parallel_merge({
                             message: parseq.sequence([
+                                parseq.requestorize(R.tap(core.removeWarn)),
                                 adapter.sendMessage(
                                     function ({tab, includeStyle}) {
                                         return {
@@ -69,8 +70,7 @@ function executeCommand(command) {
                                 processResponse
                             ])
                         }),
-                        adapter.sendMessage(),
-                        parseq.requestorize(R.tap(core.removeWarn))
+                        adapter.sendMessage()
                     ])
                 )
             ])
@@ -80,6 +80,7 @@ function executeCommand(command) {
 
     function my_callback(value, reason) {
         if (value === undefined) {
+            console.log(reason.evidence);
             return console.log(reason);
         }
     }

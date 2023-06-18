@@ -67,15 +67,21 @@ function executeScriptRequestor(callback, {tabId, script}) {
 const executeScript = parseq.factory(tryCatcher(executeScriptRequestor, "executeScript"));
 
 function sendMessageRequestor(callback, {message, tabId}) {
-    chrome.tabs.sendMessage(tabId, message, function (response) {
-        if (chrome.runtime.lastError) {
-            return callback(
-                undefined,
-                `sendMessage failed: tab - ${tabId} ${chrome.runtime.lastError}`
-            );
-        }
-        return callback(response);
-    });
+    try {
+        chrome.tabs.sendMessage(tabId, message, function (response) {
+            if (chrome.runtime.lastError) {
+                return callback(
+                    undefined,
+                    `sendMessage failed: tab - ${tabId} ${chrome.runtime.lastError}`
+                );
+            }
+            return callback(response);
+        });
+    } catch (e) {
+        const reason = new Error(`Error in sendMessage. message: ${JSON.stringify(message)}, tabId: ${tabId}`);
+        reason.evidence = e;
+        return callback(undefined, reason);
+    }
 }
 const sendMessage = parseq.factory(tryCatcher(sendMessageRequestor, "sendMessage"));
 
