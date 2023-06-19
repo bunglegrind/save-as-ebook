@@ -19,11 +19,11 @@ const getBook = fromStorage({key: "allPages", defaultValue: []});
 const getTitle = fromStorage({key: "title", defaultValue: "eBook"});
 const getCurrentStyle = fromStorage({key: "currentStyle", defaultValue: 0});
 
-const setCurrentStyle = toStorage("currentStyle");
-const setIncludeStyle = toStorage("includeStyle");
-const setBook = toStorage("allPages");
-const setTitle = toStorage("title");
-const setStyles = toStorage("styles");
+const setCurrentStyle = toStorage({key: "currentStyle"});
+const setIncludeStyle = toStorage({key: "includeStyle"});
+const setBook = toStorage({key: "allPages"});
+const setTitle = toStorage({key: "title"});
+const setStyles = toStorage({key: "styles"});
 
 const clearBook = parseq.parallel([
     removeFromStorage(() => Object.fromEntries([["key", "allPages"]])),
