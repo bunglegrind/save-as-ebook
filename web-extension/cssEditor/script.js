@@ -56,11 +56,10 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                 }
                 existingStyles.appendChild(listItem);
             });
-            return true;
         }
 
         pq.sequence([
-            pq.requestorize(function () {
+            pq.requestorize(R.tap(function () {
                 const html = htmlTemplate(translate);
 
                 disableCss();
@@ -200,9 +199,7 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                     };
                 }
 
-
                 modal.style.display = "block";
-
 
                 function saveStyle() {
                     const isRegexValid = checkRegex(select("matchUrl").value);
@@ -244,17 +241,14 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                     }
                     return true;
                 }
-
-
-                return {};
-            }),
+            })),
             adapter.getStyles,
-            pq.requestorize(createStyleList)
+            pq.requestorize(R.tap(createStyleList))
         ])(function (value, reason) {
             if (value === undefined) {
                 console.log(reason?.evidence);
                 return console.log(reason);
             }
-        });
+        }, true);
     });
 });

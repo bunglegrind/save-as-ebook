@@ -98,7 +98,7 @@ const sendRuntimeMessage = parseq.factory(
 
 const getStyles = sendRuntimeMessage({message: {type: "get styles"}});
 const setStyles = (styles) => sendRuntimeMessage({message: {type: "set styles", req: {styles}}});
-const importStyles = sendRuntimeMessage({message: {type: "ImportCustomStyles"}});
+const importStyles = (importedStyles) => sendRuntimeMessage({message: {type: "ImportCustomStyles", req: {importedStyles}}});
 const exportStyles = sendRuntimeMessage({message: {type: "ExportCustomStyles"}});
 
 function fromStorageRequestor(callback, {key, defaultValue}) {

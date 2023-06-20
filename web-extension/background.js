@@ -83,6 +83,7 @@ function executeCommand(command) {
             console.log(reason.evidence);
             return console.log(reason);
         }
+        console.log(value);
     }
 
     if (command === "save-page") {
