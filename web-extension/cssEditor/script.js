@@ -180,11 +180,11 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                         if (validateCustomStyles(importedStyles)) {
                             adapter.importStyles(importedStyles)(
                                 function (value, reason) {
-                                    alert(
-                                        value !== undefined
-                                        ? translate('stylesImported')
-                                        : reason
-                                    );
+                                    if (value === undefined) {
+                                        console.log(reason.evidence);
+                                        return console.log(reason);
+                                    }
+                                    alert(translate('stylesImported'));
                                     closeModal();
                                 });
                         } else {

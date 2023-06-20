@@ -259,10 +259,10 @@ function _execRequest(request, sender, sendResponse) {
 
     }
     if (request.type === 'ImportCustomStyles') {
-        chrome.storage.local.set(
-            {'styles': request.customStyles.styles},
-            () => sendResponse(true)
-        );
+        adapter.toStorage({
+            req: {styles: request.customStyles.styles},
+            key: "styles"
+        })(callback);
     }
     if (request.type === 'downloadEBook') {
         try {
