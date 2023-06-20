@@ -1,16 +1,7 @@
 import parseq from "./libs/parseq-extended.js";
 
-function check_callback(callback, factory_name) {
-    if (typeof callback !== "function" || callback.length !== 2) {
-        throw parseq.make_reason(
-            factory_name,
-            "Not a callback function.",
-            callback
-        );
-    }
-}
 
-function tryCatcher(func, name) {
+function tryCatcher(func) {
     return function (callback, value) {
         try {
             return func(callback, value);
@@ -26,7 +17,7 @@ function tryCatcher(func, name) {
             return callback(
                 undefined,
                 parseq.make_reason(
-                    name,
+                    "try-catcher",
                     `catched requestor error ${jsonValue}`,
                     e
                 )
@@ -36,7 +27,6 @@ function tryCatcher(func, name) {
 }
 
 const getTabs = tryCatcher(function (callback, props) {
-    check_callback(callback, "getTabs");
     chrome.tabs.query(
         props,
         function (tabs) {
@@ -52,7 +42,6 @@ const getTabs = tryCatcher(function (callback, props) {
 }, "getTabs");
 
 function insertCssRequestor(callback, {tabId, message}) {
-    check_callback(callback, "insertCss");
     chrome.tabs.insertCSS(tabId, message, function () {
         if (chrome.runtime.lastError) {
             return callback(
@@ -66,7 +55,6 @@ function insertCssRequestor(callback, {tabId, message}) {
 const insertCss = parseq.factory(tryCatcher(insertCssRequestor, "insertCss"));
 
 function executeScriptRequestor(callback, {tabId, script}) {
-    check_callback(callback, "executeScript");
     chrome.tabs.executeScript(tabId, script, function () {
         if (chrome.runtime.lastError) {
             return callback(
@@ -80,7 +68,6 @@ function executeScriptRequestor(callback, {tabId, script}) {
 const executeScript = parseq.factory(tryCatcher(executeScriptRequestor, "executeScript"));
 
 function sendMessageRequestor(callback, {message, tabId}) {
-    check_callback(callback, "sendMessage");
     chrome.tabs.sendMessage(tabId, message, function (response) {
         if (chrome.runtime.lastError) {
             return callback(
@@ -94,7 +81,6 @@ function sendMessageRequestor(callback, {message, tabId}) {
 const sendMessage = parseq.factory(tryCatcher(sendMessageRequestor, "sendMessage"));
 
 function sendRuntimeMessageRequestor(callback, {message}) {
-    check_callback(callback, "sendRuntimeMessage");
     chrome.runtime.sendMessage(message, function (response) {
         if (!response && chrome.runtime.lastError) {
             return callback(
@@ -107,19 +93,15 @@ function sendRuntimeMessageRequestor(callback, {message}) {
     });
 }
 const sendRuntimeMessage = parseq.factory(
-    tryCatcher(sendRuntimeMessageRequestor, "sendRuntimeMessage")
+    tryCatcher(sendRuntimeMessageRequestor), "sendRuntimeMessage"
 );
 
 const getStyles = sendRuntimeMessage({message: {type: "get styles"}});
-const setStyles = (styles) => sendRuntimeMessage({message: {type: "set styles", styles}});
-const importStyles = (styles) => sendRuntimeMessage({
-    type: "ImportCustomStyles",
-    customStyles: styles
-});
-const exportStyles = sendRuntimeMessage({type: "ExportCustomStyles"});
+const setStyles = (styles) => sendRuntimeMessage({message: {type: "set styles", req: {styles}}});
+const importStyles = sendRuntimeMessage({message: {type: "ImportCustomStyles"}});
+const exportStyles = sendRuntimeMessage({message: {type: "ExportCustomStyles"}});
 
 function fromStorageRequestor(callback, {key, defaultValue}) {
-    check_callback(callback, "fromStorage");
     chrome.storage.local.get(
         key,
         function (data) {
@@ -142,7 +124,6 @@ const fromStorage = parseq.factory(tryCatcher(
 
 //WARNING: the callback is missing from everywhere in the code!
 function toStorageRequestor(callback, {key, req}) {
-    check_callback(callback, "toStorage");
     const obj = Object.create(null);
     obj[key] = req[key];
     chrome.storage.local.set(obj, function () {
@@ -163,7 +144,6 @@ const toStorage = parseq.factory(tryCatcher(
 ));
 
 function removeFromStorageRequestor(callback, {key, value}) {
-    check_callback(callback, "removeFromStorage");
     chrome.storage.local.remove(key, function () {
         if (chrome.runtime.lastError) {
             return callback(

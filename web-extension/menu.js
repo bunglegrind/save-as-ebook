@@ -140,7 +140,7 @@
         let includeStyleCheck = document.getElementById('includeStyleCheck');
         adapter.sendRuntimeMessage({message: {
                 type: "set include style",
-                includeStyle: includeStyleCheck.checked
+                req: {includeStyle: includeStyleCheck.checked}
             }})(function callback(value, reason) {
                 if (value === undefined) {
                     return console.log("reason: menu-set include style " + reason);

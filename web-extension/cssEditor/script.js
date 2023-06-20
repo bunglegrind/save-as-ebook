@@ -31,7 +31,7 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
         let existingStyles;
         const setDisplay = R.curry(function (value, id) {
             document.querySelector(
-                `#css-Editor-${id}`
+                `#cssEditor-${id}`
             ).style.display = value;
         });
         const displayNone = setDisplay("none");
@@ -56,6 +56,7 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                 }
                 existingStyles.appendChild(listItem);
             });
+            return true;
         }
 
         pq.sequence([
@@ -128,7 +129,6 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                 function removeStyle() {
                     if (confirm(translate('confirmDeleteStyle')) == true) {
                         allStyles.splice(currentStyleIndex, 1);
-                        adapter.setStyles(allStyles);
                         adapter.setStyles(allStyles)(function (value, reason) {
                             if (value === undefined) {
                                 return console.log(reason);
@@ -223,7 +223,7 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                         currentStyle = tmpValue;
                         allStyles[currentStyleIndex] = currentStyle;
                     }
-                    adapter.setStyles(allStyles)(function (value, reason) {
+                    adapter.setStyles({req: {styles: allStyles}})(function (value, reason) {
                         if (value === undefined) {
                             return console.log(reason);
                         }

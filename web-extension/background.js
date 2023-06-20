@@ -183,6 +183,9 @@ function _execRequest(request, sender, sendResponse) {
     function make_callback(f) {
         return function callback(value, reason) {
             if (value === undefined) {
+                if (reason.evidence) {
+                    console.log(reason.evidence);
+                }
                 return console.log("reason: " + request.type + " " + reason);
             }
             f(value);
