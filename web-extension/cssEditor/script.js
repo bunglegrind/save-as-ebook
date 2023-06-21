@@ -128,7 +128,7 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                 function removeStyle() {
                     if (confirm(translate('confirmDeleteStyle')) == true) {
                         allStyles.splice(currentStyleIndex, 1);
-                        adapter.setStyles(allStyles)(function (value, reason) {
+                        adapter.saveStyles(allStyles)(function (value, reason) {
                             if (value === undefined) {
                                 return console.log(reason);
                             }
@@ -220,7 +220,7 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                         currentStyle = tmpValue;
                         allStyles[currentStyleIndex] = currentStyle;
                     }
-                    adapter.setStyles({req: {styles: allStyles}})(function (value, reason) {
+                    adapter.saveStyles({req: {styles: allStyles}})(function (value, reason) {
                         if (value === undefined) {
                             return console.log(reason);
                         }
@@ -242,7 +242,7 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
                     return true;
                 }
             })),
-            adapter.getStyles,
+            adapter.retrieveStyles,
             pq.requestorize(R.tap(createStyleList))
         ])(function (value, reason) {
             if (value === undefined) {

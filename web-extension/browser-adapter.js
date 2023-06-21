@@ -65,7 +65,9 @@ function executeScriptRequestor(callback, {tabId, script}) {
         return callback(script);
     });
 }
-const executeScript = parseq.factory(tryCatcher(executeScriptRequestor, "executeScript"));
+const executeScript = parseq.factory(
+    tryCatcher(executeScriptRequestor, "executeScript")
+);
 
 function sendMessageRequestor(callback, {message, tabId}) {
     chrome.tabs.sendMessage(tabId, message, function (response) {
@@ -96,10 +98,16 @@ const sendRuntimeMessage = parseq.factory(
     tryCatcher(sendRuntimeMessageRequestor), "sendRuntimeMessage"
 );
 
-const getStyles = sendRuntimeMessage({message: {type: "get styles"}});
-const setStyles = (styles) => sendRuntimeMessage({message: {type: "set styles", req: {styles}}});
-const importStyles = (importedStyles) => sendRuntimeMessage({message: {type: "ImportCustomStyles", customStyles: importedStyles}});
-const exportStyles = sendRuntimeMessage({message: {type: "ExportCustomStyles"}});
+const retrieveStyles = sendRuntimeMessage({message: {type: "get styles"}});
+const saveStyles = (styles) => sendRuntimeMessage(
+    {message: {type: "set styles", req: {styles}}}
+);
+const importStyles = (importedStyles) => sendRuntimeMessage(
+    {message: {type: "ImportCustomStyles", customStyles: importedStyles}}
+);
+const exportStyles = sendRuntimeMessage(
+    {message: {type: "ExportCustomStyles"}}
+);
 
 function fromStorageRequestor(callback, {key, defaultValue}) {
     chrome.storage.local.get(
