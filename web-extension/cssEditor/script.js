@@ -1,11 +1,21 @@
 import(local("./libs/parseq-extended.js")).then(function (m) {
     const pq = m["default"];
     const select = (id) => document.querySelector(`#cssEditor-${id}`);
+    const setDisplay = R.curry(function (value, id) {
+        document.querySelector(
+            `#cssEditor-${id}`
+        ).style.display = value;
+    });
+    const displayNone = setDisplay("none");
+    const displayBlock = setDisplay("block");
+    const displayInlineBlock = setDisplay("inline-block");
+
     function disableCss() {
         [...document.styleSheets].forEach(function (css) {
             css.disabled = true;
         });
     }
+
     function resetFields() {
         select("styleName").value = "";
         select("matchUrl").value = "";
@@ -17,35 +27,33 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
             local("./cssEditor/template.js")
         ),
         adapter: pq.dynamic_default_import(local("./browser-adapter.js")),
-        R: pq.dynamic_import(local("./node_modules/ramda/es/index.js"))
+        R: pq.dynamic_import(local("./node_modules/ramda/es/index.js")),
+        dom: pq_dynamic_default_import(local("./libs/dom.js"))
     })(function (value, reason) {
         if (value === undefined) {
             console.log("Error in cssEditor page");
             return console.log(reason);
         }
-        const {htmlTemplate, adapter, R} = value;
+        const {htmlTemplate, adapter, R, dom} = value;
 
         let allStyles = [];
         let currentStyle;
         let currentStyleIndex = -1;
         let existingStyles;
-        const setDisplay = R.curry(function (value, id) {
-            document.querySelector(
-                `#cssEditor-${id}`
-            ).style.display = value;
-        });
-        const displayNone = setDisplay("none");
-        const displayBlock = setDisplay("block");
-        const displayInlineBlock = setDisplay("inline-block");
-
 
         function createStyleList(allStylesTmp = []) {
             allStyles = allStyles.concat(allStylesTmp);
 
-            existingStyles.innerHTML = (
-                `<option>${translate("selectExistingCSS")}</option>`
-            );
+            existingStyle.replaceChildren();
+
+            styles = dom.option()(translate("selectExistingCSS"));
+
             allStyles.forEach(function (style, i) {
+                const listItem = dom.option({
+                    id: `option_i`,
+                    className: "cssEditor-chapter-item",
+
+                });
                 const listItem = document.createElement("option");
                 listItem.id = "option_" + i;
                 listItem.className = "cssEditor-chapter-item";
