@@ -22,7 +22,7 @@ const regexpUrl = (
     + "Expressions"
 );
 
-export default Object.freeze((translate) => div("Modal")(
+export default Object.freeze({html: (translate) => div("Modal")(
     div("modalContent")(
         div("modalHeader")(
             span("Title")(translate("styleEditor")),
@@ -92,4 +92,5 @@ export default Object.freeze((translate) => div("Modal")(
             )
         )
     )
-));
+),
+drawStyleOptions: () => {}});

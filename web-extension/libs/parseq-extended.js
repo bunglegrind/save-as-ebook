@@ -7,11 +7,12 @@
 /*property
     apply_fallback, apply_parallel, apply_parallel_object, apply_race, assign,
     catch, constant, create, default, delay, do_nothing, dynamic_default_import,
-    dynamic_import, evidence, factory, fallback, forEach, freeze, if_else,
-    isArray, keys, make_requestor_factory, map, parallel, parallel_merge,
-    parallel_object, promise_requestorize, race, reason, requestorize, sequence,
-    then, value, when, wrap_reason
+    dynamic_import, evidence, factory_maker, fallback, forEach, freeze, if_else,
+    isArray, keys, length, make_reason, make_requestor_factory, map, parallel,
+    parallel_merge, parallel_object, promise_requestorize, race, reason,
+    requestorize, sequence, then, value, when, wrap_reason
 */
+
 
 import parseq from "./parseq.js";
 
@@ -48,6 +49,7 @@ function make_reason(factory_name, excuse, evidence) {
         : ": " + excuse
     ));
     reason.evidence = evidence;
+
     return reason;
 }
 
@@ -62,7 +64,7 @@ function delay(ms, name = "delay") {
                 } catch (error) {
                     return callback(
                         undefined,
-                        make_reason("delay", "", error)
+                        make_reason(name, "", error)
                     );
                 }
                 return callback(result);
@@ -74,9 +76,9 @@ function delay(ms, name = "delay") {
     };
 }
 
-const requestorize = delay(0, "requestorize");
-const do_nothing = delay(0, "do_nothing")((v) => v);
-const constant = (c) => delay(0, `constant ${c}`)(() => c);
+const requestorize = (f, name = "requestorize") => delay(0, name)(f);
+const do_nothing = requestorize((v) => v, "do_nothing");
+const constant = (c) => requestorize(() => c, `constant ${c}`);
 
 function if_else(condition, requestor_if, requestor_else, name = "if_else") {
     return function (cb, value) {
@@ -272,8 +274,13 @@ function dynamic_default_import(url) {
     ]);
 }
 
-function factory(requestor, factory_name = "factory") {
-    return function (adapter) {
+function factory_maker(requestor, factory_name = "factory") {
+//the adapter combines the online value passed to the requestor with the
+// closure/context in which the factory is executed
+// its return value is passed to the requestor
+    return function factory(adapter) {
+
+//a default adapter is provided in order to manage the most common cases
         function default_adapter(precomputed) {
             return function (value) {
 //default: both values are object, so we give the requestor their merge
@@ -289,13 +296,14 @@ function factory(requestor, factory_name = "factory") {
                 }
 //otherwise, default behavior is to provide only the precomputed value
 //in order to have a simple make_requestor_factory unless it's nullish
-                return precomputed  ?? value;
+                return precomputed ?? value;
             };
         }
+
         if (typeof adapter !== "function") {
             adapter = default_adapter(adapter);
         }
-        return function requestor_factory(cb, value) {
+        return function req(cb, value) {
             check_callback(cb, factory_name);
             return parseq.sequence([
                 requestorize(adapter),
@@ -306,7 +314,7 @@ function factory(requestor, factory_name = "factory") {
 }
 
 function make_requestor_factory(unary) {
-    return factory(requestorize(unary));
+    return factory_maker(requestorize(unary));
 }
 
 export default Object.freeze({
@@ -328,7 +336,7 @@ export default Object.freeze({
     dynamic_default_import,
     dynamic_import,
     delay,
-    factory,
+    factory_maker,
     parallel_merge,
     make_reason
 });

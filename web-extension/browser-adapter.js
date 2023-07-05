@@ -52,7 +52,7 @@ function insertCssRequestor(callback, {tabId, message}) {
         return callback(tabId);
     });
 }
-const insertCss = parseq.factory(tryCatcher(insertCssRequestor, "insertCss"));
+const insertCss = parseq.factory_maker(tryCatcher(insertCssRequestor, "insertCss"));
 
 function executeScriptRequestor(callback, {tabId, script}) {
     chrome.tabs.executeScript(tabId, script, function () {
@@ -65,7 +65,7 @@ function executeScriptRequestor(callback, {tabId, script}) {
         return callback(script);
     });
 }
-const executeScript = parseq.factory(
+const executeScript = parseq.factory_maker(
     tryCatcher(executeScriptRequestor, "executeScript")
 );
 
@@ -80,7 +80,7 @@ function sendMessageRequestor(callback, {message, tabId}) {
         return callback(response);
     });
 }
-const sendMessage = parseq.factory(tryCatcher(sendMessageRequestor, "sendMessage"));
+const sendMessage = parseq.factory_maker(tryCatcher(sendMessageRequestor, "sendMessage"));
 
 function sendRuntimeMessageRequestor(callback, {message}) {
     chrome.runtime.sendMessage(message, function (response) {
@@ -94,7 +94,7 @@ function sendRuntimeMessageRequestor(callback, {message}) {
         return callback(response);
     });
 }
-const sendRuntimeMessage = parseq.factory(
+const sendRuntimeMessage = parseq.factory_maker(
     tryCatcher(sendRuntimeMessageRequestor), "sendRuntimeMessage"
 );
 
@@ -125,7 +125,7 @@ function fromStorageRequestor(callback, {key, defaultValue}) {
         }
     );
 }
-const fromStorage = parseq.factory(tryCatcher(
+const fromStorage = parseq.factory_maker(tryCatcher(
     fromStorageRequestor,
     "fromStorage"
 ));
@@ -146,7 +146,7 @@ function toStorageRequestor(callback, {key, req}) {
         }
     });
 }
-const toStorage = parseq.factory(tryCatcher(
+const toStorage = parseq.factory_maker(tryCatcher(
     toStorageRequestor,
     "toStorage"
 ));
@@ -162,7 +162,7 @@ function removeFromStorageRequestor(callback, {key, value}) {
         return callback(value ?? "");
     });
 }
-const removeFromStorage = parseq.factory(tryCatcher(
+const removeFromStorage = parseq.factory_maker(tryCatcher(
     removeFromStorageRequestor,
     "removeFromStorage"
 ));
@@ -197,8 +197,8 @@ export default Object.freeze({
     listenForCommands,
     listenForMessages,
     executeScript,
-    getStyles,
-    setStyles,
+    retrieveStyles,
+    saveStyles,
     importStyles,
     exportStyles,
     local_text: (id) => chrome.i18n.getMessage(id),

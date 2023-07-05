@@ -27,8 +27,7 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
             local("./cssEditor/template.js")
         ),
         adapter: pq.dynamic_default_import(local("./browser-adapter.js")),
-        R: pq.dynamic_import(local("./node_modules/ramda/es/index.js")),
-        dom: pq_dynamic_default_import(local("./libs/dom.js"))
+        R: pq.dynamic_import(local("./node_modules/ramda/es/index.js"))
     })(function (value, reason) {
         if (value === undefined) {
             console.log("Error in cssEditor page");
@@ -68,7 +67,7 @@ import(local("./libs/parseq-extended.js")).then(function (m) {
 
         pq.sequence([
             pq.requestorize(R.tap(function () {
-                const html = htmlTemplate(translate);
+                const {html} = htmlTemplate(translate);
 
                 disableCss();
                 select("Modal")?.remove();
