@@ -10,9 +10,9 @@
 /*jslint node */
 
 /*property
-    concat, create, evidence, fallback, forEach, freeze, isArray, isSafeInteger,
-    keys, length, min, parallel, parallel_object, pop, push, race, sequence,
-    some
+    check_callback, concat, create, evidence, fallback, forEach, freeze,
+    isArray, isSafeInteger, keys, length, make_reason, min, parallel,
+    parallel_object, pop, push, race, sequence, some
 */
 
 function make_reason(factory_name, excuse, evidence) {
@@ -138,55 +138,44 @@ function run(
 // saving the cancel function that the requestor might return.
 
             const requestor = requestor_array[number];
-            try {
-                cancel_array[number] = requestor(
-                    function start_requestor_callback(value, reason) {
+            cancel_array[number] = requestor(
+                function start_requestor_callback(value, reason) {
 
 // This callback function is called by the 'requestor' when it is done.
 // If we are no longer running, then this call is ignored.
 // For example, it might be a result that is sent back after the time
 // limit has expired. This callback function can only be called wunce.
 
-                        if (
-                            cancel_array !== undefined
-                            && number !== undefined
-                        ) {
+                    if (
+                        cancel_array !== undefined
+                        && number !== undefined
+                    ) {
 
 // We no longer need the cancel associated with this requestor.
 
-                            cancel_array[number] = undefined;
+                        cancel_array[number] = undefined;
 
 // Call the 'action' function to let the requestor know what happened.
 
-                            action(value, reason, number);
+                        action(value, reason, number);
 
 // Clear 'number' so this callback can not be used again.
 
-                            number = undefined;
+                        number = undefined;
 
 // If there are any requestors that are still waiting to start, then
 // start the next wun. If the next requestor is in a sequence, then it
 // gets the most recent 'value'. The others get the 'initial_value'.
 
-                            setTimeout(start_requestor, 0, (
-                                factory_name === "sequence"
-                                ? value
-                                : initial_value
-                            ));
-                        }
-                    },
-                    value
-                );
-
-// Requestors are required to report their failure thru the callback.
-// They are not allowed to throw exceptions. If we happen to catch wun,
-// it is treated as a failure.
-
-            } catch (exception) {
-                action(undefined, exception, number);
-                number = undefined;
-                start_requestor(value);
-            }
+                        setTimeout(start_requestor, 0, (
+                            factory_name === "sequence"
+                            ? value
+                            : initial_value
+                        ));
+                    }
+                },
+                value
+            );
         }
     }
 
@@ -576,6 +565,8 @@ function sequence(requestor_array, time_limit) {
 }
 
 export default Object.freeze({
+    make_reason,
+    check_callback,
     fallback,
     parallel,
     parallel_object,

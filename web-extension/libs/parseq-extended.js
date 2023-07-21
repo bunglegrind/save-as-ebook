@@ -1,62 +1,50 @@
 /*jslint
     unordered
-    */
+*/
 /*global
     setTimeout, clearTimeout
-    */
+*/
 /*property
     apply_fallback, apply_parallel, apply_parallel_object, apply_race, assign,
-    catch, constant, create, default, delay, do_nothing, dynamic_default_import,
-    dynamic_import, evidence, factory_maker, fallback, forEach, freeze, if_else,
-    isArray, keys, length, make_reason, make_requestor_factory, map, parallel,
-    parallel_merge, parallel_object, promise_requestorize, race, reason,
-    requestorize, sequence, then, value, when, wrap_reason
+    catch, check_callback, constant, create, default, delay, do_nothing,
+    dynamic_default_import, dynamic_import, evidence, factory_maker, fallback,
+    forEach, freeze, if_else, isArray, keys, make_reason,
+    make_requestor_factory, map, parallel, parallel_merge, parallel_object,
+    promise_requestorize, race, reason, requestorize, sequence, stringify, then,
+    try_catcher,value, when, wrap_reason
 */
-
 
 import parseq from "./parseq.js";
 
-function check_callback(callback, factory_name) {
-    if (typeof callback !== "function" || callback.length !== 2) {
-        throw make_reason(
-            factory_name,
-            "Not a callback function.",
-            callback
-        );
-    }
-}
-
-function callback_factory(cb, factory_name) {
-    check_callback(cb, factory_name);
-    let is_called = false;
-    return function callback(value, reason) {
-        if (!is_called) {
-            is_called = true;
-            return cb(value, reason);
+function try_catcher(requestor, name = "try-catcher") {
+    return function (callback, value) {
+        try {
+            return requestor(callback, value);
+        } catch (e) {
+            const jsonValue = JSON.stringify(
+                value,
+                (ignore, v) => (
+                    v === undefined
+                    ? "undefined"
+                    : v
+                )
+            );
+            return callback(
+                undefined,
+                parseq.make_reason(
+                    name,
+                    `catched requestor error ${jsonValue}`,
+                    e
+                )
+            );
         }
-        const err = new Error(`Callback failed`);
-        if (reason) {
-            err.evidence = reason;
-        }
-        throw err;
     };
-}
-
-function make_reason(factory_name, excuse, evidence) {
-    const reason = new Error("parseq." + factory_name + (
-        excuse === undefined
-        ? ""
-        : ": " + excuse
-    ));
-    reason.evidence = evidence;
-
-    return reason;
 }
 
 function delay(ms, name = "delay") {
     return function (unary) {
-        return function delay_requestor(cb, v) {
-            const callback = callback_factory(cb, name);
+        return function delay_requestor(callback, v) {
+            parseq.check_callback(callback, name);
             const id = setTimeout(function (v) {
                 let result;
                 try {
@@ -64,7 +52,7 @@ function delay(ms, name = "delay") {
                 } catch (error) {
                     return callback(
                         undefined,
-                        make_reason(name, "", error)
+                        parseq.make_reason(name, "", error)
                     );
                 }
                 return callback(result);
@@ -81,8 +69,8 @@ const do_nothing = requestorize((v) => v, "do_nothing");
 const constant = (c) => requestorize(() => c, `constant ${c}`);
 
 function if_else(condition, requestor_if, requestor_else, name = "if_else") {
-    return function (cb, value) {
-        const callback = callback_factory(cb, name);
+    return function (callback, value) {
+        parseq.check_callback(callback, name);
         if (condition(value)) {
             return requestor_if(callback, value);
         }
@@ -95,8 +83,8 @@ function when(condition, requestor) {
 }
 
 function wrap_reason(requestor) {
-    return function (cb, value) {
-        const callback = callback_factory(cb, "wrap_reason");
+    return function (callback, value) {
+        parseq.check_callback(callback, "wrap_reason");
         return requestor(function (value, reason) {
             return callback({value, reason});
         }, value);
@@ -108,20 +96,13 @@ function apply_race(
     time_limit,
     throttle
 ) {
-    return function (cb, value) {
-        const callback = callback_factory(cb, "apply_race");
-        try {
-            return parseq.race(
-                value.map(requestor_factory),
-                time_limit,
-                throttle
-            )(callback);
-        } catch (e) {
-            return callback(
-                undefined,
-                make_reason("apply_race", "", e)
-            );
-        }
+    return function (callback, value) {
+        parseq.check_callback(callback, "apply_race");
+        try_catcher(parseq.race(
+            value.map(requestor_factory),
+            time_limit,
+            throttle
+        ), "apply_race")(callback);
     };
 }
 
@@ -129,19 +110,12 @@ function apply_fallback(
     requestor_factory,
     time_limit
 ) {
-    return function (cb, value) {
-        const callback = callback_factory(cb, "apply_fallback");
-        try {
-            return parseq.fallback(
-                value.map(requestor_factory),
-                time_limit
-            )(callback);
-        } catch (e) {
-            return callback(
-                undefined,
-                make_reason("apply_fallback", "", e)
-            );
-        }
+    return function (callback, value) {
+        parseq.check_callback(callback, "apply_fallback");
+        try_catcher(parseq.fallback(
+            value.map(requestor_factory),
+            time_limit
+        ), "apply_fallback")(callback);
     };
 }
 
@@ -152,26 +126,19 @@ function apply_parallel(
     time_option,
     throttle
 ) {
-    return function (cb, value) {
-        const callback = callback_factory(cb, "apply_parallel");
-        try {
-            return parseq.parallel(
-                value.map(requestor_factory),
-                (
-                    typeof optional_requestor_factory === "function"
-                    ? value.map(optional_requestor_factory)
-                    : []
-                ),
-                time_limit,
-                time_option,
-                throttle
-            )(callback);
-        } catch (e) {
-            return callback(
-                undefined,
-                make_reason("apply_parallel", "", e)
-            );
-        }
+    return function (callback, value) {
+        parseq.check_callback(callback, "apply_parallel");
+        try_catcher(parseq.parallel(
+            value.map(requestor_factory),
+            (
+                typeof optional_requestor_factory === "function"
+                ? value.map(optional_requestor_factory)
+                : []
+            ),
+            time_limit,
+            time_option,
+            throttle
+        ), "apply_parallel")(callback);
     };
 }
 
@@ -181,34 +148,26 @@ function apply_parallel_object(
     time_option,
     throttle
 ) {
-    return function (cb, value) {
-        const callback = callback_factory(cb, "apply_parallel_object");
-        try {
-            const keys = Object.keys(value);
-            const required_obj_requestor = Object.create(null);
-            keys.forEach(function (key) {
-                required_obj_requestor[key] = requestor_factory(value[key]);
-            });
-            return parseq.parallel_object(
-                required_obj_requestor,
-                undefined,
-                time_limit,
-                time_option,
-                throttle
-            )(callback);
-
-        } catch (e) {
-            return callback(
-                undefined,
-                make_reason("apply_parallel_object", "", e)
-            );
-        }
-    };
+    return try_catcher(function (callback, value) {
+        parseq.check_callback(callback, "apply_parallel_object");
+        const keys = Object.keys(value);
+        const required_obj_requestor = Object.create(null);
+        keys.forEach(function (key) {
+            required_obj_requestor[key] = requestor_factory(value[key]);
+        });
+        return parseq.parallel_object(
+            required_obj_requestor,
+            undefined,
+            time_limit,
+            time_option,
+            throttle
+        )(callback);
+    }, "apply_parallel_object");
 }
 
 function parallel_merge(obj, opt_obj, time_limit, time_option, throttle) {
-    return function parallel_merge_requestor(cb, value) {
-        const callback = callback_factory(cb, "parallel_merge");
+    return function parallel_merge_requestor(callback, value) {
+        parseq.check_callback(callback, "parallel_merge");
         return parseq.sequence([
             parseq.parallel_object(
                 obj,
@@ -230,7 +189,7 @@ function parallel_merge(obj, opt_obj, time_limit, time_option, throttle) {
 
 function promise_requestorize(promise, action = "executing promise") {
     return function (callback) {
-        check_callback(callback, action);
+        parseq.check_callback(callback, action);
         let is_called = false;
         function promise_callback(value, reason) {
             if (!is_called) {
@@ -239,7 +198,7 @@ function promise_requestorize(promise, action = "executing promise") {
                     return callback(
                         undefined,
 //first callback call: promise has thrown
-                        make_reason(
+                        parseq.make_reason(
                             "promise_requestorize",
                             `Failed when ${action}`,
                             reason
@@ -304,7 +263,7 @@ function factory_maker(requestor, factory_name = "factory") {
             adapter = default_adapter(adapter);
         }
         return function req(cb, value) {
-            check_callback(cb, factory_name);
+            parseq.check_callback(cb, factory_name);
             return parseq.sequence([
                 requestorize(adapter),
                 requestor
@@ -338,5 +297,6 @@ export default Object.freeze({
     delay,
     factory_maker,
     parallel_merge,
-    make_reason
+    make_reason: parseq.make_reason,
+    try_catcher
 });
