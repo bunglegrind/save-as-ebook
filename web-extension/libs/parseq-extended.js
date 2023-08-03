@@ -10,8 +10,8 @@
     dynamic_default_import, dynamic_import, evidence, factory_maker, fallback,
     forEach, freeze, if_else, isArray, keys, make_reason,
     make_requestor_factory, map, parallel, parallel_merge, parallel_object,
-    promise_requestorize, race, reason, requestorize, sequence, stringify, then,
-    try_catcher,value, when, wrap_reason
+    promise_requestorize, race, reason, requestorize, sequence, stringify, tap,
+    then, try_catcher,value, when, wrap_reason
 */
 
 import parseq from "./parseq.js";
@@ -248,7 +248,7 @@ function factory_maker(requestor, factory_name = "factory") {
                     && !Array.isArray(precomputed)
                 ) {
                     return Object.assign(
-                        {},
+                        Object.create(null),
                         precomputed,
                         value
                     );
@@ -276,6 +276,17 @@ function make_requestor_factory(unary) {
     return factory_maker(requestorize(unary));
 }
 
+function tap(requestor) {
+    return function (cb, value) {
+        return requestor(function (v, reason) {
+            if (v === undefined) {
+                return cb(undefined, reason);
+            }
+            return cb(value);
+        }, value);
+    };
+}
+
 export default Object.freeze({
 /*jslint-disable*/
     ...parseq,
@@ -298,5 +309,6 @@ export default Object.freeze({
     factory_maker,
     parallel_merge,
     make_reason: parseq.make_reason,
-    try_catcher
+    try_catcher,
+    tap
 });
