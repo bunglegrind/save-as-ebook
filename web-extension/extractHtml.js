@@ -332,6 +332,8 @@ function promiseAddZip(url, filename) {
                 filename = filename.replace("TODO-EXTRACT", "gif")
             } else if (header.startsWith("ffd8ff")) {
                 filename = filename.replace("TODO-EXTRACT", "jpg")
+            } else if (header.startsWith("52494646")) {
+                filename = filename.replace("TODO-EXTRACT", "webp")
             } else {
                 // ERROR
                 return Promise.reject("Error! Unable to extract the image type! " + filename + " " +  url);
