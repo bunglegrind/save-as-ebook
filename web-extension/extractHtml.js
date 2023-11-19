@@ -150,13 +150,16 @@ function convertSvgToImg(element) {
     element.querySelectorAll("svg").forEach(function (elem) {
         // add width & height because the result image was too big
         const bbox = elem.getBoundingClientRect();
-        elem.outerHTML = (
-            "<img src=\"data:image/svg+xml;base64,"
-            + window.btoa(serializer.serializeToString(elem))
-            + "\" width=\"" + bbox.width
-            + "\" height=\"" + bbox.height
-            + "\">"    + "</img>"
+        const img = document.createElement("img");
+        img.setAttribute("width", bbox.width);
+        img.setAttribute("height", bbox.height);
+        img.setAttribute(
+            "src",
+            "data:image/svg+xml;base64," + window.btoa(
+                serializer.serializeToString(elem)
+            )
         );
+        elem.replaceWith(img);
     });
 }
 
