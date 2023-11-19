@@ -102,8 +102,7 @@ function getImageSrc(srcTxt) {
     }
     let newImgFileName = "img-" + generateRandomNumber(true) + '.' + fileExtension;
 
-    let isB64Img = isBase64Img(srcTxt);
-    if (isB64Img) {
+    if (isBase64Img(srcTxt)) {
         extractedImages.push({
             filename: newImgFileName, // TODO name
             data: getBase64ImgData(srcTxt)
@@ -148,9 +147,12 @@ function convertSvgToImg(element) {
     const serializer = new XMLSerializer();
 
     element.querySelectorAll("svg").forEach(function (elem) {
-        // add width & height because the result image was too big
-        const bbox = elem.getBoundingClientRect();
+        const bbox = (
+            elem.viewBox.baseVal
+            ?? {width: elem.style.width ?? 0, height: elem.style.height ?? 0}
+        );
         const img = document.createElement("img");
+        //not sure..
         img.setAttribute("width", bbox.width);
         img.setAttribute("height", bbox.height);
         img.setAttribute(
@@ -332,8 +334,10 @@ function extractCss(includeStyle, appliedStyles) {
 /////
 
 function promiseAddZip(url, filename) {
-    return fetch(url).then(function (data) {
-        return data.arrayBuffer();
+    let status;
+    return fetch(url).then(function (response) {
+        status = response.status;
+        return response.arrayBuffer();
     }).then(function (data) {
         // TODO - move to utils.js
         if (filename.endsWith("TODO-EXTRACT")) {
@@ -352,8 +356,9 @@ function promiseAddZip(url, filename) {
             } else if (header.startsWith("52494646")) {
                 filename = filename.replace("TODO-EXTRACT", "webp")
             } else {
-                // ERROR
-                return Promise.reject("Error! Unable to extract the image type! " + filename + " " +  url);
+                console.log("Unable to extract the image type! " + filename + " " +  url + " status: " + status);
+                filename = "save-as-ebook-placeholder.jpeg";
+                data = "";
             }
             htmlContent = htmlContent.replace(oldFilename, filename);
         }
@@ -515,7 +520,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 sendResponse(result);
             }
         ).catch(function (e) {
-            console.log("Error:", e);
+            console.log("Error:");
+            console.log(e);
             sendResponse(null);
         });
     }, 3000);
