@@ -461,7 +461,7 @@ function _execRequest(request, sender, sendResponse) {
                 ),
 //TODO listent downloads.onChanged
 //https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download
-                'filename': request.filename.replace(/[<>?"*|:]/g, "")
+                    'filename': request.filename.replace(/[^À-ÿ\w- .]/gi, "_")
 
                 },
                 function (downloadId) {
