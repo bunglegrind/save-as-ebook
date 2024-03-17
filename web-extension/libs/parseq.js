@@ -10,9 +10,9 @@
 /*jslint node */
 
 /*property
-    check_callback, concat, create, evidence, fallback, forEach, freeze,
-    isArray, isSafeInteger, keys, length, make_reason, min, parallel,
-    parallel_object, pop, push, race, sequence, some
+    check_callback, check_requestors, concat, create, evidence, fallback,
+    forEach, freeze, isArray, isSafeInteger, keys, length, make_reason, min,
+    parallel, parallel_object, pop, push, race, sequence, some
 */
 
 function make_reason(factory_name, excuse, evidence) {
@@ -565,9 +565,10 @@ function sequence(requestor_array, time_limit) {
 }
 
 export default Object.freeze({
-    make_reason,
     check_callback,
+    check_requestors,
     fallback,
+    make_reason,
     parallel,
     parallel_object,
     race,

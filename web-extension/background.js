@@ -1,7 +1,9 @@
-import core from "./core.js";//TODO maybe it's just a workaround
+/*jslint browser, unordered, fart */
+/*global console, dispatch */
+import core from "./core.js";//maybe it's just a workaround
 import parseq from "./libs/parseq-extended.js";
 import adapter from "./browser-adapter.js";
-import * as R from "./node_modules/ramda/es/index.js";
+import R from "./libs/ramda.js";
 
 const currentTab = {
     currentWindow: true,
@@ -19,7 +21,9 @@ function executeCommand(command) {
 
     parseq.sequence([
         adapter.getTabs,
-        parseq.requestorize(R.pipe(R.head, R.pick(["id", "url"]), R.objOf("tab"))),
+        parseq.requestorize(
+            R.pipe(R.head, R.pick(["id", "url"]), R.objOf("tab"))
+        ),
         (
             core.isBusy()
             ? adapter.sendMessage({
@@ -45,7 +49,7 @@ function executeCommand(command) {
                         parseq.parallel_merge({
                             css: parseq.sequence([
                                 parseq.parallel_merge({
-                                    styles: core.getStyles,
+                                    styles: core.getStyles
                                 }),
                                 parseq.requestorize(extractCustomStyle),
                                 adapter.insertCss(function ({tabId, styles}) {
@@ -63,8 +67,11 @@ function executeCommand(command) {
                                     function ({tab, includeStyle}) {
                                         return {
                                             tabId: tab.id,
-                                            message: {type: action, includeStyle}
-                                        }
+                                            message: {
+                                                type: action,
+                                                includeStyle
+                                            }
+                                        };
                                     }
                                 ),
                                 processResponse
@@ -191,7 +198,7 @@ function _execRequest(request, sender, sendResponse) {
             }
             f(value);
             return console.log("value: " + request.type + " " + value);
-        }
+        };
     }
 
     const callback = make_callback(sendResponse);
