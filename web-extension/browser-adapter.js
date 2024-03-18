@@ -1,32 +1,8 @@
-import parseq from "./libs/parseq-extended.js";
+/*jslint browser, unordered */
+/*global chrome */
+import pq from "./libs/parseq-extended.js";
 
-
-function tryCatcher(func) {
-    return function (callback, value) {
-        try {
-            return func(callback, value);
-        } catch (e) {
-            const jsonValue = JSON.stringify(
-                value,
-                (k, v) => (
-                    v === undefined
-                    ? "undefined"
-                    : v
-                )
-            );
-            return callback(
-                undefined,
-                parseq.make_reason(
-                    "try-catcher",
-                    `catched requestor error ${jsonValue}`,
-                    e
-                )
-            );
-        }
-    };
-}
-
-const getTabs = tryCatcher(function (callback, props) {
+const getTabs = pq.try_catcher(function (callback, props) {
     chrome.tabs.query(
         props,
         function (tabs) {
@@ -46,27 +22,29 @@ function insertCssRequestor(callback, {tabId, message}) {
         if (chrome.runtime.lastError) {
             return callback(
                 undefined,
-                `executedScript failed: tab - ${tabId} ${chrome.runtime.lastError}`
+                `executedScript failed:tab-${tabId} ${chrome.runtime.lastError}`
             );
         }
         return callback(tabId);
     });
 }
-const insertCss = parseq.factory_maker(tryCatcher(insertCssRequestor, "insertCss"));
+const insertCss = pq.factory_maker(
+    pq.try_catcher(insertCssRequestor, "insertCss")
+);
 
 function executeScriptRequestor(callback, {tabId, script}) {
     chrome.tabs.executeScript(tabId, script, function () {
         if (chrome.runtime.lastError) {
             return callback(
                 undefined,
-                `executeScript failed: tab - ${tabId} ${chrome.runtime.lastError}`
+                `executeScript failed:tab-${tabId} ${chrome.runtime.lastError}`
             );
         }
         return callback(script);
     });
 }
-const executeScript = parseq.factory_maker(
-    tryCatcher(executeScriptRequestor, "executeScript")
+const executeScript = pq.factory_maker(
+    pq.try_catcher(executeScriptRequestor, "executeScript")
 );
 
 function sendMessageRequestor(callback, {message, tabId}) {
@@ -80,7 +58,9 @@ function sendMessageRequestor(callback, {message, tabId}) {
         return callback(response);
     });
 }
-const sendMessage = parseq.factory_maker(tryCatcher(sendMessageRequestor, "sendMessage"));
+const sendMessage = pq.factory_maker(
+    pq.try_catcher(sendMessageRequestor, "sendMessage")
+);
 
 function sendRuntimeMessageRequestor(callback, {message}) {
     chrome.runtime.sendMessage(message, function (response) {
@@ -94,8 +74,9 @@ function sendRuntimeMessageRequestor(callback, {message}) {
         return callback(response);
     });
 }
-const sendRuntimeMessage = parseq.factory_maker(
-    tryCatcher(sendRuntimeMessageRequestor), "sendRuntimeMessage"
+const sendRuntimeMessage = pq.factory_maker(
+    pq.try_catcher(sendRuntimeMessageRequestor),
+    "sendRuntimeMessage"
 );
 
 const retrieveStyles = sendRuntimeMessage({message: {type: "get styles"}});
@@ -118,14 +99,14 @@ function fromStorageRequestor(callback, {key, defaultValue}) {
             if (chrome.runtime.lastError) {
                 return callback(
                     undefined,
-                    `fromStorage failed: key - ${key} ${chrome.runtime.lastError}`
+                    `fromStorage failed:key-${key} ${chrome.runtime.lastError}`
                 );
             }
             return callback(data[key] ?? defaultValue);
         }
     );
 }
-const fromStorage = parseq.factory_maker(tryCatcher(
+const fromStorage = pq.factory_maker(pq.try_catcher(
     fromStorageRequestor,
     "fromStorage"
 ));
@@ -146,7 +127,7 @@ function toStorageRequestor(callback, {key, req}) {
         }
     });
 }
-const toStorage = parseq.factory_maker(tryCatcher(
+const toStorage = pq.factory_maker(pq.try_catcher(
     toStorageRequestor,
     "toStorage"
 ));
@@ -156,13 +137,13 @@ function removeFromStorageRequestor(callback, {key, value}) {
         if (chrome.runtime.lastError) {
             return callback(
                 undefined,
-                `removeFromStorage failed: key - ${key} ${chrome.runtime.lastError}`
+                `removFromStorage failed:key-${key} ${chrome.runtime.lastError}`
             );
         }
         return callback(value ?? "");
     });
 }
-const removeFromStorage = parseq.factory_maker(tryCatcher(
+const removeFromStorage = pq.factory_maker(pq.try_catcher(
     removeFromStorageRequestor,
     "removeFromStorage"
 ));
@@ -202,7 +183,7 @@ export default Object.freeze({
     importStyles,
     exportStyles,
     local_text: (id) => chrome.i18n.getMessage(id),
-    get_background_page_requestor: (cb) => parseq.promise_requestorize(
+    get_background_page_requestor: (cb) => pq.promise_requestorize(
         chrome.runtime.getBackgroundPage(cb)
     ),
     commands: Object.keys(chrome.runtime.getManifest().commands)
