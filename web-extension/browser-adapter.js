@@ -1,28 +1,43 @@
-/*jslint browser, unordered */
-/*global chrome */
+/*jslint browser, unordered*/
+/*global chrome*/
+/*properties
+    getTabs, sendMessage, sendRuntimeMessage, fromStorage, toStorage,
+    removeFromStorage, getAllCommands, insertCss, listenForCommands,
+    listenForMessages, executeScript, retrieveStyles, saveStyles, importStyles,
+    exportStyles, getTabs, make_reason
+*/
 import pq from "./libs/parseq-extended.js";
 
-const getTabs = pq.try_catcher(function (callback, props) {
+function getTabsRequestor(callback, {active}) {
     chrome.tabs.query(
-        props,
+        {active},
         function (tabs) {
             if (chrome.runtime.lastError) {
                 return callback(
                     undefined,
-                    `getTabs failed: ${chrome.runtime.lastError}`
+                    pq.make_reason(
+                        "getTabs",
+                        `getTabs failed: ${chrome.runtime.lastError}`,
+                        {active}
+                    )
                 );
             }
             return callback(tabs);
         }
     );
-}, "getTabs");
+}
+const getTabs = pq.factory_maker(pq.try_catcher(getTabsRequestor), "getTabs");
 
 function insertCssRequestor(callback, {tabId, message}) {
     chrome.tabs.insertCSS(tabId, message, function () {
         if (chrome.runtime.lastError) {
             return callback(
                 undefined,
-                `executedScript failed:tab-${tabId} ${chrome.runtime.lastError}`
+                pq.make_reason(
+                    "insertCss",
+                    `insertCSS tab-${tabId} ${chrome.runtime.lastError}`,
+                    {tabId, message}
+                )
             );
         }
         return callback(tabId);
@@ -37,7 +52,11 @@ function executeScriptRequestor(callback, {tabId, script}) {
         if (chrome.runtime.lastError) {
             return callback(
                 undefined,
-                `executeScript failed:tab-${tabId} ${chrome.runtime.lastError}`
+                pq.make_reason(
+                    "executeScript",
+                    `executeScript tab-${tabId} ${chrome.runtime.lastError}`,
+                    {tabId, script}
+                )
             );
         }
         return callback(script);
@@ -52,7 +71,11 @@ function sendMessageRequestor(callback, {message, tabId}) {
         if (chrome.runtime.lastError) {
             return callback(
                 undefined,
-                `sendMessage failed: tab - ${tabId} ${chrome.runtime.lastError}`
+                pq.make_reason(
+                    "sendMessage",
+                    `sendMessage tab-${tabId} ${chrome.runtime.lastError}`,
+                    {tabId, message}
+                )
             );
         }
         return callback(response);
@@ -67,8 +90,11 @@ function sendRuntimeMessageRequestor(callback, {message}) {
         if (!response && chrome.runtime.lastError) {
             return callback(
                 undefined,
-                `sendRuntimeMessage (message: ${JSON.stringify(message)})`
-                + ` failed: ${chrome.runtime.lastError}`
+                pq.make_reason(
+                    "sendRuntimeMessage",
+                    `sendRuntimeMessage ${chrome.runtime.lastError}`,
+                    {message}
+                )
             );
         }
         return callback(response);
@@ -99,10 +125,14 @@ function fromStorageRequestor(callback, {key, defaultValue}) {
             if (chrome.runtime.lastError) {
                 return callback(
                     undefined,
-                    `fromStorage failed:key-${key} ${chrome.runtime.lastError}`
+                    pq.make_reason(
+                        "fromStorage",
+                        `fromStorage ${chrome.runtime.lastError}`,
+                        {key, defaultValue}
+                    )
                 );
             }
-            return callback(data[key] ?? defaultValue);
+            return callback(data[key] || defaultValue);
         }
     );
 }
@@ -120,7 +150,11 @@ function toStorageRequestor(callback, {key, req}) {
             if (chrome.runtime.lastError) {
                 return callback(
                     undefined,
-                    `toStorage failed: key - ${key} ${chrome.runtime.lastError}`
+                    pq.make_reason(
+                        "toStorage",
+                        `toStorage ${chrome.runtime.lastError}`,
+                        {key, req}
+                    )
                 );
             }
             return callback(req);
@@ -137,7 +171,11 @@ function removeFromStorageRequestor(callback, {key, value}) {
         if (chrome.runtime.lastError) {
             return callback(
                 undefined,
-                `removFromStorage failed:key-${key} ${chrome.runtime.lastError}`
+                pq.make_reason(
+                    "removeFromStorage",
+                    `removeFromStorage ${chrome.runtime.lastError}`,
+                    {key, value}
+                )
             );
         }
         return callback(value ?? "");
