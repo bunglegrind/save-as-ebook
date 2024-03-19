@@ -1,3 +1,8 @@
+/*jslint browser, unordered*/
+/*global chrome, console*/
+import pq from ".libs/parseq-extended";
+import adapter from "./browser-adapter.js";
+
 function warning(timeout) {
     let started = false;
     let cancel;
@@ -23,17 +28,29 @@ function warning(timeout) {
     }
 
     function insertTag() {
-        chrome.browserAction.setBadgeBackgroundColor({color: "red"});
-        chrome.browserAction.setBadgeText({text: "Busy"});
+        pq.sequence([
+            adapter.setBadgeBackgroundColor({color: "red"}),
+            adapter.setBadgeText({text: "Busy"})
+        ])(function (value, reason) {
+            if (value === undefined) {
+                console.dir(reason);
+            }
+        });
     }
 
     function clearTag() {
-        chrome.browserAction.setBadgeText({text: ""});
-        const popups = chrome.extension.getViews({type: "popup"});
+        pq.sequence([
+            adapter.setBadgeText({text: ""})
+        ])(function (value, reason) {
+            if (value === undefined) {
+                console.dir(reason);
+            }
+            const popups = adapter.getViews({type: "popup"});
 
-        if (popups.length > 0) {
-            popups[0].close();
-        }
+            if (popups.length > 0) {
+                popups[0].close();
+            }
+        });
     }
 
     return Object.freeze({

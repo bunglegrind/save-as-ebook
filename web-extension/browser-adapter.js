@@ -1,11 +1,18 @@
 /*jslint browser, unordered*/
 /*global chrome*/
-/*properties
-    getTabs, sendMessage, sendRuntimeMessage, fromStorage, toStorage,
-    removeFromStorage, getAllCommands, insertCss, listenForCommands,
-    listenForMessages, executeScript, retrieveStyles, saveStyles, importStyles,
-    exportStyles, getTabs, make_reason
+/*property
+    active, addListener, browserAction, color, commands, create, customStyles,
+    defaultValue, executeScript, exportStyles, extensions, factory_maker,
+    freeze, fromStorage, get, getAll, getAllCommands, getBackgroundPage,
+    getCommands, getLocalText, getManifest, getMessage, getTabs, getViews, i18n,
+    importStyles, insertCSS, insertCss, key, keys, lastError, listenForCommands,
+    listenForMessages, local, make_reason, message, onCommand, onMessage, query,
+    remove, removeFromStorage, req, retrieveStyles, runtime, saveStyles, script,
+    sendMessage, sendRuntimeMessage, set, setBadgeBackgroundColor, setBadgeText,
+    storage, styles, tabId, tabs, text, toStorage, try_catcher, type, value,
+    windowId
 */
+
 import pq from "./libs/parseq-extended.js";
 
 function getTabsRequestor(callback, {active}) {
@@ -198,11 +205,73 @@ function listenForMessages(callback) {
     chrome.runtime.onMessage.addListener(callback);
 }
 
-function get_background_page_requestor(callback) {
-    chrome.runtime.getBackgroundPage(callback, function (err) {
-        return callback(undefined, err);
+function setBadgeBackgroundColorRequestor(callback, {color, tabId, windowId}) {
+    chrome.browserAction.setBadgeBackgroundColor(
+        {color, tabId, windowId},
+        function () {
+            if (chrome.runtime.lastError) {
+                return callback(
+                    undefined,
+                    pq.make_reason(
+                        "setBadgeBackgroundColor",
+                        `setBadgeBackgroundColor ${chrome.runtime.lastError}`,
+                        {color, tabId, windowId}
+                    )
+                );
+            }
+            return callback(true);
+        }
+    );
+}
+const setBadgeBackgroundColor = pq.factory_maker(
+    setBadgeBackgroundColorRequestor,
+    "setBadgeBackgroundColor"
+);
+
+function setBadgeTextRequestor(callback, {text, tabId, windowId}) {
+    chrome.browserAction.setBadgeText({text, tabId, windowId}, function () {
+        if (chrome.runtime.lastError) {
+            return callback(
+                undefined,
+                pq.make_reason(
+                    "setBadgeText",
+                    `setBadgeText ${chrome.runtime.lastError}`,
+                    {text, tabId, windowId}
+                )
+            );
+        }
+        return callback(true);
     });
 }
+const setBadgeText = pq.factory_maker(setBadgeTextRequestor, "setBadgeText");
+
+function getViews({type}) {
+    return chrome.extensions.getViews({type});
+}
+
+function getBackgroundPageRequestor(callback) {
+    chrome.runtime.getBackgroundPage(function (page) {
+        if (chrome.runtime.lastError) {
+            return callback(
+                undefined,
+                pq.make_reason(
+                    "getBackgroundPage",
+                    `getBackgroundPage ${chrome.runtime.lastError}`
+                )
+            );
+        }
+        return callback(page);
+
+    });
+}
+const getBackgroundPage = pq.factory_maker(
+    getBackgroundPageRequestor,
+    "getBackgroundPage"
+);
+
+const getLocalText = (id) => chrome.i18n.getMessage(id);
+
+const getCommands = () => Object.keys(chrome.runtime.getManifest().commands);
 
 export default Object.freeze({
     getTabs,
@@ -220,9 +289,10 @@ export default Object.freeze({
     saveStyles,
     importStyles,
     exportStyles,
-    local_text: (id) => chrome.i18n.getMessage(id),
-    get_background_page_requestor: (cb) => pq.promise_requestorize(
-        chrome.runtime.getBackgroundPage(cb)
-    ),
-    commands: Object.keys(chrome.runtime.getManifest().commands)
+    setBadgeBackgroundColor,
+    setBadgeText,
+    getViews,
+    getLocalText,
+    getBackgroundPage,
+    getCommands
 });
