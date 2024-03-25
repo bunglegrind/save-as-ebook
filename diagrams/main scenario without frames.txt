@@ -1,0 +1,14 @@
+@startuml
+
+title Main scenario (no iframe)
+
+actor User as User
+actor Menu as Menu
+actor Page as Page
+actor Background as Background
+User -> Menu : save page
+Menu -> Page : get content
+Page -> Background : send content
+Background-> User : save as
+
+@enduml

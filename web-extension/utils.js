@@ -278,3 +278,18 @@ function jsonToCss(jsonObj) {
 
 const translate = (label) => chrome.i18n.getMessage(label);
 const local = (x) => chrome.runtime.getURL(x);
+
+const camelize = (s) => s.replace(/-./g, x => x[1].toUpperCase());
+function callback_factory(message) {
+    return function (value, reason) {
+        if (value === undefined) {
+            console.log(message);
+            console.log(reason);
+        }
+    }
+}
+
+export default Object.freeze({
+    camelize,
+    callback_factory
+});
