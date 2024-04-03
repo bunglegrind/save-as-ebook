@@ -134,7 +134,7 @@ function convertCanvasToImg(element) {
                 e.outerHTML = (
                     "<img src=\""
                     + e.toDataURL("image/jpeg")
-                    + "\" alt=\"\"></img>"
+                    + "\" alt=\"\">"
                 );
             } catch (error) {
                 console.log(error)
