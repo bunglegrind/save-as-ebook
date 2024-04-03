@@ -155,10 +155,19 @@ function convertSvgToImg(element) {
         //not sure..
         img.setAttribute("width", bbox.width);
         img.setAttribute("height", bbox.height);
+// https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
+        function bytesToBase64(bytes) {
+            const binString = Array.from(bytes, (byte) =>
+                String.fromCodePoint(byte),
+            ).join("");
+            return window.btoa(binString);
+        }
+
+
         img.setAttribute(
             "src",
-            "data:image/svg+xml;base64," + window.btoa(
-                serializer.serializeToString(elem)
+            "data:image/svg+xml;base64," + bytesToBase64(
+                new TextEncoder().encode(serializer.serializeToString(elem))
             )
         );
         elem.replaceWith(img);
