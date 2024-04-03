@@ -285,6 +285,12 @@ function extractCss(includeStyle, appliedStyles) {
                                 cssValue = (numCssValue / fontSize).toFixed(1);
                             }
                         }
+                        if (["margin-left", "margin-right"].includes(cssTagName)) {
+                           const parentWidth = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("width"));
+                            if (parentWidth > 0) {
+                                cssValue =  (100 * parseInt(cssValue)/parentWidth).toFixed(0) + "%";
+                            }
+                        }
                         tmpNewCss[cssTagName] = cssValue;
                     }
                 }
