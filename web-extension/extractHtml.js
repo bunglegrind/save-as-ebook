@@ -478,67 +478,65 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     extractIFrames(Array.from(document.querySelectorAll("iframe")));
 
-    setTimeout(function () {
-        //extract style and add data-class to every relevant node
-        styleFile = extractCss(request.includeStyle, request.appliedStyles);
-        if (request.type === "extract-page") {
-            Array.from(document.body.children).forEach((el) => content.appendChild(el.cloneNode(true)));
-        } else if (request.type === "extract-selection") {
-            getSelectedNodes().forEach((fg) => content.appendChild(fg.cloneNode(true)));
+    //extract style and add data-class to every relevant node
+    styleFile = extractCss(request.includeStyle, request.appliedStyles);
+    if (request.type === "extract-page") {
+        Array.from(document.body.children).forEach((el) => content.appendChild(el.cloneNode(true)));
+    } else if (request.type === "extract-selection") {
+        getSelectedNodes().forEach((fg) => content.appendChild(fg.cloneNode(true)));
+    }
+    extractMathMl(content);
+    convertCanvasToImg(content);
+    convertSvgToImg(content);
+    convertPictureToImg(content);
+    dataClassToClass(content);
+    prepareImages(content);
+    prepareAnchors(content);
+    prepareMaths(content);
+    replaceWebComponents(content);
+    //remove not allowed tags
+    content.querySelectorAll("*").forEach(function (node) {
+        if (!allowedTags.includes(node.tagName.toLowerCase())) {
+            //TODO: remove display:none?
+            node.remove();
+        } else {//TODO: too many if/else, refactoring needed
+            if (!["img", "a", "math"].includes(node.tagName.toLowerCase())) {
+                getAttributes(node).forEach(function (attribute) {
+                    if (attribute !== "class") {
+                        node.removeAttribute(attribute);
+                    }
+                });
+            }
         }
-        extractMathMl(content);
-        convertCanvasToImg(content);
-        convertSvgToImg(content);
-        convertPictureToImg(content);
-        dataClassToClass(content);
-        prepareImages(content);
-        prepareAnchors(content);
-        prepareMaths(content);
-        replaceWebComponents(content);
-        //remove not allowed tags
-        content.querySelectorAll("*").forEach(function (node) {
-            if (!allowedTags.includes(node.tagName.toLowerCase())) {
-                //TODO: remove display:none?
-                node.remove();
-            } else {//TODO: too many if/else, refactoring needed
-                if (!["img", "a", "math"].includes(node.tagName.toLowerCase())) {
-                    getAttributes(node).forEach(function (attribute) {
-                        if (attribute !== "class") {
-                            node.removeAttribute(attribute);
-                        }
-                    });
-                }
-            }
-        });
+    });
 
-        //workaround in order to disable automatic fetching of images
-        htmlContent = content.outerHTML.replaceAll(
-            "saveasebook-src",
-            "src"
-        );
+    //workaround in order to disable automatic fetching of images
+    htmlContent = content.outerHTML.replaceAll(
+        "saveasebook-src",
+        "src"
+    );
 
-        allImages.forEach(function (tmpImg) {
-            imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
-        });
+    allImages.forEach(function (tmpImg) {
+        imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
+    });
 
-        Promise.all(imgsPromises).then(function () {
-                const tmpTitle = getPageTitle(document.title);
-                result = {
-                    url: getPageUrl(tmpTitle),
-                    title: tmpTitle,
-                    baseUrl: getBaseUrl(),
-                    styleFileContent: styleFile,
-                    styleFileName: "style" + generateRandomNumber() + ".css",
-                    images: extractedImages,
-                    content: htmlContent
-                };
-                sendResponse(result);
-            }
-        ).catch(function (e) {
-            console.log("Error:");
-            console.log(e);
-            sendResponse(null);
-        });
-    }, 3000);
+    Promise.all(imgsPromises).then(function () {
+            const tmpTitle = getPageTitle(document.title);
+            result = {
+                url: getPageUrl(tmpTitle),
+                title: tmpTitle,
+                baseUrl: getBaseUrl(),
+                styleFileContent: styleFile,
+                styleFileName: "style" + generateRandomNumber() + ".css",
+                images: extractedImages,
+                content: htmlContent
+            };
+            sendResponse(result);
+        }
+    ).catch(function (e) {
+        console.log("Error:");
+        console.log(e);
+        sendResponse(null);
+    });
     return true;
 });
