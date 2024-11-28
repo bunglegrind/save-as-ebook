@@ -1,6 +1,11 @@
 var cssFileName = 'ebook.css';
 var ebookTitle = null;
 
+function filterHeader(content) {
+    const startTag = "<body>";
+    return content.substring(content.indexOf(startTag) + startTag.length);
+}
+
 chrome.runtime.onMessage.addListener((obj, sender, sendResponse) => {
     if (obj.shortcut && obj.shortcut === 'build-ebook') {
         buildEbook(obj.response);
@@ -132,8 +137,7 @@ function _buildEbook(allPages, fromMenu=false) {
             '<title>' + tmpPageTitle+ '</title>' +
             '<link href="../style/' + page.styleFileName + '" rel="stylesheet" type="text/css" />' +
             '</head><body>' +
-            page.content +
-            '</body></html>'
+            filterHeader(page.content)
         );
     });
 

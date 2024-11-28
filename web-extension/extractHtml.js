@@ -515,6 +515,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         "saveasebook-src",
         "src"
     );
+    const doc = new DOMParser().parseFromString(htmlContent, "text/html");
+    const res = new XMLSerializer().serializeToString(doc);
 
     allImages.forEach(function (tmpImg) {
         imgsPromises.push(promiseAddZip(tmpImg.originalUrl, tmpImg.filename));
@@ -529,7 +531,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 styleFileContent: styleFile,
                 styleFileName: "style" + generateRandomNumber() + ".css",
                 images: extractedImages,
-                content: htmlContent
+                content: res
             };
             sendResponse(result);
         }
