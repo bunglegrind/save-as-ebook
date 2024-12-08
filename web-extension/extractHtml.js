@@ -82,6 +82,17 @@ var webComponents = [
     "readme-toc"
 ];
 
+function makeHeader(article) {
+    const div = document.createElement("div");
+    const h1 = document.createElement("h1");
+    div.className = "header reader-header reader-show-element";
+    h1.className = "reader-title";
+    h1.append(article.title);
+    div.append(h1);
+
+    return div;
+}
+
 function getImageSrc(srcTxt) {
     if (!srcTxt) {
         return '';
@@ -256,94 +267,73 @@ function isVisible(elem) {
     );
 }
 
-function extractCss(includeStyle, appliedStyles) {
-    if (includeStyle) {
-        document.querySelectorAll("body *").forEach(function (pre, i) {
-            if (
-                allowedTags.indexOf(pre.tagName.toLowerCase()) < 0
-                || mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1
-            ) {
-                return;
-            }
-
-            if (!isVisible(pre)) {
-//Workaround: I think I should clone the visible nodes in a new DOM-like structure
-                pre.innerHTML = "";
-            } else {
-                if (pre.tagName.toLowerCase() === "svg") return;
-
-                const elementId = pre.tagName + "-" + generateRandomNumber(true);
-                let tmpName = generateRandomTag(2) + i;
-                cssClassesToTmpIds[elementId] = tmpName;
-                const tmpNewCss = {};
-                const styles = window.getComputedStyle(pre);
-
-                for (let cssTagName of supportedCss.concat(inheritedCss)) {
-                    let cssValue = styles.getPropertyValue(cssTagName);
-                    if (cssValue && cssValue.length > 0) {
-                        if (cssTagName === "font-size") {
-                            const parentFontSize = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("font-size"));
-                            if (parentFontSize > 0) {
-                                cssValue = (parseInt(cssValue)/parentFontSize).toFixed(1) + "em";
-                            }
-                        }
-                        if (cssTagName === "line-height") {
-                            const fontSize = parseInt(styles.getPropertyValue("font-size"));
-                            const numCssValue = parseInt(cssValue);
-                            if (numCssValue > 0) {
-                                cssValue = (numCssValue / fontSize).toFixed(1);
-                            }
-                        }
-                        if (["margin-left", "margin-right"].includes(cssTagName)) {
-                           const parentWidth = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("width"));
-                            if (parentWidth > 0) {
-                                cssValue =  (100 * parseInt(cssValue)/parentWidth).toFixed(0) + "%";
-                            }
-                        }
-                        tmpNewCss[cssTagName] = cssValue;
-                    }
-                }
-
-            // Reuse CSS - if the same css code was generated for another element, reuse it's class name
-                let tcss = JSON.stringify(tmpNewCss)
-                let found = false
-
-                if (Object.keys(tmpIdsToNewCssSTRING).length === 0) {
-                    tmpIdsToNewCssSTRING[tmpName] = tcss;
-                    tmpIdsToNewCss[tmpName] = tmpNewCss;
-                } else {
-                    for (const key in tmpIdsToNewCssSTRING) {
-                        if (tmpIdsToNewCssSTRING[key] === tcss) {
-                            tmpName = key
-                            found = true
-                            break
-                        }
-                    }
-                    if (!found) {
-                        tmpIdsToNewCssSTRING[tmpName] = tcss;
-                        tmpIdsToNewCss[tmpName] = tmpNewCss;
-                    }
-                }
-                pre.setAttribute('data-class', tmpName);
-            }
-        });
-        return jsonToCss(tmpIdsToNewCss);
-    } else {
-        // remove hidden elements when style is not included
-        document.querySelectorAll("body *").forEach(function ( pre) {
-            if (!isVisible(pre)) {
-                pre.outerHTML = "";
-            }
-        });
-        let mergedCss = "";
-        if (appliedStyles && appliedStyles.length > 0) {
-            for (let i = 0; i < appliedStyles.length; i++) {
-                mergedCss += appliedStyles[i].style;
-            }
-            return mergedCss;
+function extractCss() {
+    document.querySelectorAll("body *").forEach(function (pre, i) {
+        if (
+            allowedTags.indexOf(pre.tagName.toLowerCase()) < 0
+            || mathMLTags.indexOf(pre.tagName.toLowerCase()) > -1
+        ) {
+            return;
         }
-    }
-    return null;
+        if (pre.tagName.toLowerCase() === "svg") return;
+
+        const elementId = pre.tagName + "-" + generateRandomNumber(true);
+        let tmpName = generateRandomTag(2) + i;
+        cssClassesToTmpIds[elementId] = tmpName;
+        const tmpNewCss = {};
+        const styles = window.getComputedStyle(pre);
+
+        for (let cssTagName of supportedCss.concat(inheritedCss)) {
+            let cssValue = styles.getPropertyValue(cssTagName);
+            if (cssValue && cssValue.length > 0) {
+                if (cssTagName === "font-size") {
+                    const parentFontSize = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("font-size"));
+                    if (parentFontSize > 0) {
+                        cssValue = (parseInt(cssValue)/parentFontSize).toFixed(1) + "em";
+                    }
+                }
+                if (cssTagName === "line-height") {
+                    const fontSize = parseInt(styles.getPropertyValue("font-size"));
+                    const numCssValue = parseInt(cssValue);
+                    if (numCssValue > 0) {
+                        cssValue = (numCssValue / fontSize).toFixed(1);
+                    }
+                }
+                if (["margin-left", "margin-right"].includes(cssTagName)) {
+                    const parentWidth = parseInt(getComputedStyle(pre.parentElement).getPropertyValue("width"));
+                    if (parentWidth > 0) {
+                        cssValue =  (100 * parseInt(cssValue)/parentWidth).toFixed(0) + "%";
+                    }
+                }
+                tmpNewCss[cssTagName] = cssValue;
+            }
+        }
+
+        // Reuse CSS - if the same css code was generated for another element, reuse it's class name
+        let tcss = JSON.stringify(tmpNewCss)
+        let found = false
+
+        if (Object.keys(tmpIdsToNewCssSTRING).length === 0) {
+            tmpIdsToNewCssSTRING[tmpName] = tcss;
+            tmpIdsToNewCss[tmpName] = tmpNewCss;
+        } else {
+            for (const key in tmpIdsToNewCssSTRING) {
+                if (tmpIdsToNewCssSTRING[key] === tcss) {
+                    tmpName = key
+                    found = true
+                    break
+                }
+            }
+            if (!found) {
+                tmpIdsToNewCssSTRING[tmpName] = tcss;
+                tmpIdsToNewCss[tmpName] = tmpNewCss;
+            }
+        }
+        pre.setAttribute('data-class', tmpName);
+
+    });
+
+    return jsonToCss(tmpIdsToNewCss);
 }
 
 /////
@@ -473,15 +463,35 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
     let imgsPromises = [];
     let result = {};
-    let styleFile = null;
     const content = document.createElement("div");
 
     extractIFrames(Array.from(document.querySelectorAll("iframe")));
 
+    document.querySelectorAll("body *").forEach(function (pre) {
+        if (!isVisible(pre)) {
+
+// Workaround: I think I should clone the visible nodes in a new DOM-like structure
+
+            pre.outerHTML = "";
+        }
+    });
+
     //extract style and add data-class to every relevant node
-    styleFile = extractCss(request.includeStyle, request.appliedStyles);
+    const styleFile = (
+        request.includeStyle
+        ? extractCss()
+        : request.appliedStyles[0]
+    );
     if (request.type === "extract-page") {
-        Array.from(document.body.children).forEach((el) => content.appendChild(el.cloneNode(true)));
+        if (!request.includeStyle) {
+            const article = new Readability(document).parse();
+            const header = makeHeader(article);
+            content.innerHTML = header.outerHTML + DOMPurify.sanitize(article.content);
+        } else {
+            Array.from(document.body.children).forEach(
+                (el) => content.appendChild(el.cloneNode(true))
+            );
+        }
     } else if (request.type === "extract-selection") {
         getSelectedNodes().forEach((fg) => content.appendChild(fg.cloneNode(true)));
     }

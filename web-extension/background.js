@@ -1,32 +1,3 @@
-
-///////////////////
-///////////////////
-///////////////////
-///////////////////
-/// Only for testing
-
-chrome.runtime.onInstalled.addListener(details => {
-  if (navigator.userAgent === 'PuppeteerTestingAgent') {
-      let TEST_TIMER = null
-      chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-          if (TEST_TIMER) {
-              clearTimeout(TEST_TIMER)
-          }
-
-          TEST_TIMER = setTimeout(()=> {
-                executeCommand({type: 'save-page'})
-          }, 2000)
-      });
-  }
-});
-
-
-
-///////////////////
-///////////////////
-///////////////////
-///////////////////
-
 var isBusy = false;
 var busyResetTimer = null
 
@@ -149,8 +120,12 @@ display: none;
 
 ];
 
-chrome.commands.onCommand.addListener((command) => {
-    executeCommand({type: command})
+chrome.commands.onCommand.addListener(function (command) {
+    fetch(chrome.runtime.getURL("./libs/aboutReader.css")).then(
+        (d) => d.text()
+    ).then(function (css) {
+        executeCommand({type: command, readerCss: css})
+    });
 });
 
 function executeCommand(command) {
@@ -166,13 +141,13 @@ function executeCommand(command) {
         return;
     }
     if (command.type === 'save-page') {
-        dispatch('extract-page', false, []);
+        dispatch('extract-page', false, [command.readerCss]);
     } else if (command.type === 'save-selection') {
-        dispatch('extract-selection', false, []);
+        dispatch('extract-selection', false, [command.readerCss]);
     } else if (command.type === 'add-page') {
-        dispatch('extract-page', true, []);
+        dispatch('extract-page', true, [command.readerCss]);
     } else if (command.type === 'add-selection') {
-        dispatch('extract-selection', true, []);
+        dispatch('extract-selection', true, [command.readerCss]);
     }
 
     isBusy = true
