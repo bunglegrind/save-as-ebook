@@ -486,7 +486,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         if (!request.includeStyle) {
             const article = new Readability(document).parse();
             const header = makeHeader(article);
-            content.innerHTML = header.outerHTML + DOMPurify.sanitize(article.content);
+            content.innerHTML = header.outerHTML + article.content;
         } else {
             Array.from(document.body.children).forEach(
                 (el) => content.appendChild(el.cloneNode(true))
@@ -525,6 +525,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         "saveasebook-src",
         "src"
     );
+    content.innerHTML = DOMPurify.sanitize(content.innerHTML);
     const doc = new DOMParser().parseFromString(htmlContent, "text/html");
     const res = new XMLSerializer().serializeToString(doc);
 
