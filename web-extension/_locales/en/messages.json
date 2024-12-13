@@ -3,8 +3,11 @@
         "message": "Save as eBook",
         "description": "Extension name"
     },
-    "includeStyle": {
+    "includeStyleCheckLabel": {
         "message": "Include (Custom) Style"
+    },
+    "firefoxReaderLabel": {
+        "message": "Use Firefox Reader View"
     },
     "editStyles": {
         "message": "Edit Custom Styles ..."

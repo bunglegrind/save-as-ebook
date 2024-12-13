@@ -31,7 +31,10 @@
     .optionContainer {
         font-family: sans-serif;
         font-size: 14px;
-        padding: 6px 0;
+    }
+
+    .optionContainer div {
+      padding: 6px 0;
     }
 
     button {
@@ -128,8 +131,14 @@
     <div id="menuTitle"></div>
     <hr/>
     <div class="optionContainer">
-        <input type="checkbox" name="button" id="includeStyleCheck">
-        <label for="includeStyleCheck" id="includeStyle"></label>
+      <div>
+        <input checked value="firefoxReader" type="radio" name="includeStyleCheck" id="firefoxReader">
+        <label for="firefoxReader" id="firefoxReaderLabel"></label>
+      </div>
+      <div>
+          <input type="radio" value="includeStyleCheck" name="includeStyleCheck" id="includeStyleCheck">
+          <label for="includeStyleCheck" id="includeStyleCheckLabel"></label>
+      </div>
     </div>
     <button id="editStyles" type="button" name="button"></button>
     <hr/>

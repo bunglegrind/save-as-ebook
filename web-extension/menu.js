@@ -4,7 +4,8 @@ var appliedStyles = [];
 
 // create menu labels
 document.getElementById('menuTitle').innerHTML = chrome.i18n.getMessage('extName');
-document.getElementById('includeStyle').innerHTML = chrome.i18n.getMessage('includeStyle');
+document.getElementById('includeStyleCheckLabel').innerHTML = chrome.i18n.getMessage('includeStyleCheckLabel');
+document.getElementById('firefoxReaderLabel').innerHTML = chrome.i18n.getMessage('firefoxReaderLabel');
 document.getElementById('editStyles').innerHTML = chrome.i18n.getMessage('editStyles');
 document.getElementById('savePageLabel').innerHTML = chrome.i18n.getMessage('savePage');
 document.getElementById('saveSelectionLabel').innerHTML = chrome.i18n.getMessage('saveSelection');
@@ -90,8 +91,12 @@ function createStyleList(styles) {
 }
 
 function createIncludeStyle(data) {
-    let includeStyleCheck = document.getElementById('includeStyleCheck');
-    includeStyleCheck.checked = data;
+    const ic = document.getElementById(
+        data
+        ? 'includeStyleCheck'
+        : 'firefoxReader'
+    );
+    ic.checked = true;
 }
 
 chrome.runtime.sendMessage({
@@ -100,13 +105,18 @@ chrome.runtime.sendMessage({
     createIncludeStyle(response.includeStyle);
 });
 
-document.getElementById('includeStyleCheck').onclick = function () {
-    let includeStyleCheck = document.getElementById('includeStyleCheck');
+document.getElementById('includeStyleCheck').onclick = function (event) {
     chrome.runtime.sendMessage({
         type: "set include style",
-        includeStyle: includeStyleCheck.checked
-    }, function(response) {
-    });
+        includeStyle: true
+    }, function(response) {});
+}
+
+document.getElementById('firefoxReader').onclick = function (event) {
+    chrome.runtime.sendMessage({
+        type: "set include style",
+        includeStyle: false
+    }, function(response) {});
 }
 
 document.getElementById("editStyles").onclick = function() {
