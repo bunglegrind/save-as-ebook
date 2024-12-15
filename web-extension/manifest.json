@@ -30,7 +30,9 @@
         "downloads",
         "storage",
         "unlimitedStorage",
-        "notifications",
+        "notifications"
+    ],
+    "host_permissions": [
         "<all_urls>"
     ],
     "commands": {
