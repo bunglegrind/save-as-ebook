@@ -197,6 +197,7 @@ function convertPictureToImg(root) {
 }
 
 // replaces all iframes by divs with the same innerHTML content
+
 function extractIFrames(iframes, prefix = "") {
     if (!iframes.length) {
         return;
@@ -205,9 +206,10 @@ function extractIFrames(iframes, prefix = "") {
     function addIdInStyle(style, id) {
         return style.split("{").map(function (segment) {
             const selectors = segment.split("}");
-        // if the CSS is well formed, selectors may be 1 element (for the first
-        // rule) or 2 elements array. Last element is the one which contains the
-        // actual selectors.
+
+// if the CSS is well formed, selectors may be 1 element (for the first rule) or
+// 2 elements array. Last element is the one which contains the actual selectors
+
             selectors[selectors.length - 1] = selectors[selectors.length - 1]
                 .split(",")
                 .map(function (selector) {
@@ -225,21 +227,36 @@ function extractIFrames(iframes, prefix = "") {
         const div = document.createElement("div");
         div.id = prefix + "save-as-ebook-iframe-" + index;
         if (!iframe.contentDocument || !iframe.contentDocument.body) {
-            console.log("CORS not enabled or empty iframe. Discarding " + div.id);
+            console.log(
+                "CORS not enabled or empty iframe. Discarding " + div.id
+            );
+
             return div;
         }
         const bbox = iframe.getBoundingClientRect();
         div.style.width = bbox.width;
         div.style.height = bbox.height;
         console.log(div.id);
-        div.innerHTML = iframe.contentDocument.body.innerHTML;
+        div.innerHTML = DOMPurify.sanitize(
+            iframe.contentDocument.body.innerHTML
+        );
         Array.from(div.querySelectorAll("style")).forEach(function (style) {
-            style.innerHTML = addIdInStyle(style.innerHTML, div.id);
+            style.innerHTML = addIdInStyle(
+                DOMPurify.sanitize(style.innerHTML),
+                div.id
+            );
+        });
+        Array.from(div.querySelectorAll("script")).forEach(function (script) {
+            script.remove();
         });
 
         return div;
     });
-    iframes.forEach((iframe, i) => iframe.parentNode.replaceChild(divs[i], iframe));
+
+    iframes.forEach(
+        (iframe, i) => iframe.parentNode.replaceChild(divs[i], iframe)
+    );
+
     return divs.forEach((div, i) => extractIFrames(
         Array.from(div.querySelectorAll("iframe")),
         i + "-"
