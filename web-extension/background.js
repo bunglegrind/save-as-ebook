@@ -126,38 +126,42 @@ chrome.commands.onCommand.addListener(function (command) {
 });
 
 function executeCommand(command) {
-    if (isBusy) {
-        chrome.tabs.query({
-            currentWindow: true,
-            active: true
-        }, (tab) => {
-            chrome.tabs.sendMessage(tab[0].id, {'alert': 'Work in progress! Please wait until the current eBook is generated!'}, (r) => {
-              console.log(r);
+    chrome.storage.session.get({isBusy: false}).then(function ({isBusy}) {
+        if (isBusy) {
+            chrome.tabs.query({
+                currentWindow: true,
+                active: true
+            }, function (tab) {
+                chrome.tabs.sendMessage(
+                    tab[0].id,
+                    {'alert': 'Work in progress! Please wait until the current eBook is generated!'},
+                    (r) => {console.log(r);}
+                );
             });
-        })
-        return;
-    }
-    if (command.type === 'save-page') {
-        dispatch('extract-page', false, [command.readerCss]);
-    } else if (command.type === 'save-selection') {
-        dispatch('extract-selection', false, [command.readerCss]);
-    } else if (command.type === 'add-page') {
-        dispatch('extract-page', true, [command.readerCss]);
-    } else if (command.type === 'add-selection') {
-        dispatch('extract-selection', true, [command.readerCss]);
-    }
+            return;
+        }
+        if (command.type === 'save-page') {
+            dispatch('extract-page', false, [command.readerCss]);
+        } else if (command.type === 'save-selection') {
+            dispatch('extract-selection', false, [command.readerCss]);
+        } else if (command.type === 'add-page') {
+            dispatch('extract-page', true, [command.readerCss]);
+        } else if (command.type === 'add-selection') {
+            dispatch('extract-selection', true, [command.readerCss]);
+        }
 
-    isBusy = true
-
-    browser.alarms.create("busy", {when: Date.now() + 20000});
+        chrome.storage.session.set({isBusy: true}).then(function () {
+            chrome.alarms.create("busy", {when: Date.now() + 20000});
+        });
+    });
 }
 
 function dispatch(action, justAddToBuffer, appliedStyles) {
     if (!justAddToBuffer) {
         _execRequest({type: 'remove'});
     }
-    chrome.browserAction.setBadgeBackgroundColor({color:"red"});
-    chrome.browserAction.setBadgeText({text: "Busy"});
+    chrome.action.setBadgeBackgroundColor({color:"red"});
+    chrome.action.setBadgeText({text: "Busy"});
 
     chrome.tabs.query({
         currentWindow: true,
@@ -300,15 +304,15 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles, 
 }
 
 function resetBusy() {
-    session.storage.set({isBusy: false}).then(function () {
-        alarms.clear("busy").then(function (ignore) {
-            chrome.browserAction.setBadgeText({text: ""})
+    chrome.storage.session.set({isBusy: false}).then(function () {
+        chrome.alarms.clear("busy").then(function (ignore) {
+            chrome.action.setBadgeText({text: ""})
 
             let popups = chrome.extension.getViews({type: "popup"});
             if (popups && popups.length > 0) {
                 popups[0].close()
             }
-        }):
+        });
     });
 }
 
@@ -435,12 +439,12 @@ function _execRequest(request, sender, sendResponse) {
         }
     }
     if (request.type === 'is busy?') {
-        session.storage.get({isBusy: false}).then(function ({isBusy}) {
+        chrome.storage.session.get({isBusy: false}).then(function ({isBusy}) {
             sendResponse({isBusy: isBusy})
         });
     }
     if (request.type === 'set is busy') {
-        session.storage.set({isBusy: true}).then(() => {});
+        chrome.storage.session.set({isBusy: true}).then(() => {});
     }
 
     return true;
