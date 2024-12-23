@@ -19,7 +19,7 @@
     "background": {
         "scripts": ["background.js"]
     },
-    "browser_action": {
+    "action": {
         "default_icon": "icons/book32.png",
         "default_title": "Save as eBook",
         "default_popup": "menu.html"
@@ -30,7 +30,8 @@
         "downloads",
         "storage",
         "unlimitedStorage",
-        "notifications"
+        "notifications",
+        "alarms"
     ],
     "host_permissions": [
         "<all_urls>"

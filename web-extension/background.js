@@ -1,7 +1,4 @@
-var isBusy = false;
-var busyResetTimer = null
-
-var defaultStyles = [
+const defaultStyles = [
     {
         title: 'Reddit Comments',
         url: 'reddit\\.com\\/r\\/[^\\/]+\\/comments',
@@ -152,10 +149,7 @@ function executeCommand(command) {
 
     isBusy = true
 
-    //
-    busyResetTimer = setTimeout(() => {
-        resetBusy()
-    }, 20000)
+    browser.alarms.create("busy", {when: Date.now() + 20000});
 }
 
 function dispatch(action, justAddToBuffer, appliedStyles) {
@@ -275,13 +269,13 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles, 
     }, (response) => {
 
         if (!response) {
-            resetBusy()
+            resetBusy();
             chrome.tabs.sendMessage(tab[0].id, {'alert': 'Save as eBook does not work on this web site!'}, (r) => {});
             return;
         }
 
         if (response.content.trim() === '') {
-            resetBusy()
+            resetBusy();
             if (justAddToBuffer) {
                 chrome.tabs.sendMessage(tab[0].id, {'alert': 'Cannot add an empty selection as chapter!'}, (r) => {});
             } else {
@@ -298,7 +292,7 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles, 
                 }
                 data.allPages.push(response);
                 chrome.storage.local.set({'allPages': data.allPages});
-                resetBusy()
+                resetBusy();
                 chrome.tabs.sendMessage(tab[0].id, {'alert': 'Page or selection added as chapter!'}, (r) => {});
             })
         }
@@ -306,19 +300,16 @@ function applyAction(tab, action, justAddToBuffer, includeStyle, appliedStyles, 
 }
 
 function resetBusy() {
-    isBusy = false
+    session.storage.set({isBusy: false}).then(function () {
+        alarms.clear("busy").then(function (ignore) {
+            chrome.browserAction.setBadgeText({text: ""})
 
-    if (busyResetTimer) {
-        clearTimeout(busyResetTimer)
-        busyResetTimer = null
-    }
-
-    chrome.browserAction.setBadgeText({text: ""})
-
-    let popups = chrome.extension.getViews({type: "popup"});
-    if (popups && popups.length > 0) {
-        popups[0].close()
-    }
+            let popups = chrome.extension.getViews({type: "popup"});
+            if (popups && popups.length > 0) {
+                popups[0].close()
+            }
+        }):
+    });
 }
 
 chrome.runtime.onMessage.addListener(_execRequest);
@@ -387,12 +378,6 @@ function _execRequest(request, sender, sendResponse) {
     if (request.type === 'set include style') {
         chrome.storage.local.set({'includeStyle': request.includeStyle});
     }
-    if (request.type === 'is busy?') {
-        sendResponse({isBusy: isBusy})
-    }
-    if (request.type === 'set is busy') {
-        isBusy = request.isBusy
-    }
     if (request.type === 'save-page' || request.type === 'save-selection' ||
         request.type === 'add-page' || request.type === 'add-selection') {
         executeCommand({type: request.type})
@@ -449,5 +434,14 @@ function _execRequest(request, sender, sendResponse) {
             resetBusy();
         }
     }
+    if (request.type === 'is busy?') {
+        session.storage.get({isBusy: false}).then(function ({isBusy}) {
+            sendResponse({isBusy: isBusy})
+        });
+    }
+    if (request.type === 'set is busy') {
+        session.storage.set({isBusy: true}).then(() => {});
+    }
+
     return true;
 }
