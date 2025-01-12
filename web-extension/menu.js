@@ -120,7 +120,6 @@ document.getElementById('firefoxReader').onclick = function (event) {
 }
 
 document.getElementById("editStyles").onclick = function() {
-
     if (document.getElementById('cssEditor-Modal')) {
         return;
     }
@@ -130,18 +129,30 @@ document.getElementById("editStyles").onclick = function() {
         active: true
     }, function(tab) {
 
-        chrome.tabs.insertCSS(tab[0].id, {file: '/cssEditor.css'});
+        Promise.all(
+            chrome.scripting.insertCSS({
+                target: {tabId: tab[0].id},
+                files: ["/cssEditor.css"]
+            }),
+            chrome.scripting.executeScript({
+                target: {tabId: tab[0].id},
+                files: ["/utils.js", "/cssEditor.js"]
+            })
+        ).then(
+            function () {
+                window.close();
+            }
+        ).catch(
+            function (e) {
+                console.log(e);
+                window.close();
+            }
+        );
 
-        chrome.tabs.executeScript(tab[0].id, {
-            file: '/cssEditor.js'
-        });
-
-         window.close();
     });
 };
 
 document.getElementById("editChapters").onclick = function() {
-    
     if (document.getElementById('chapterEditor-Modal')) {
         return;
     }
@@ -151,13 +162,25 @@ document.getElementById("editChapters").onclick = function() {
         active: true
     }, function(tab) {
 
-        chrome.tabs.insertCSS(tab[0].id, {file: '/chapterEditor.css'});
-
-        chrome.tabs.executeScript(tab[0].id, {
-            file: '/chapterEditor.js'
-        });
-
-         window.close();
+        Promise.all(
+            chrome.scripting.insertCSS({
+                target: {tabId: tab[0].id},
+                files: ["/chapterEditor.css"]
+            }),
+            chrome.scripting.executeScript({
+                target: {tabId: tab[0].id},
+                files: ["/utils.js", "/chapterEditor.js"]
+            })
+        ).then(
+            function () {
+                window.close();
+            }
+        ).catch(
+            function (e) {
+                console.log(e);
+                window.close();
+            }
+        );
     });
 };
 

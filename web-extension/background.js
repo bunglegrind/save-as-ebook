@@ -258,9 +258,14 @@ function prepareStyles(tab, includeStyle, appliedStyles, callback) {
             return
         }
 
-        chrome.tabs.insertCSS(tab[0].id, { code: currentStyle.style }, () => {
+        chrome.scripting.insertCSS({
+            target: {tabId: tab[0].id},
+            css: currentStyle.style
+        }).then(() => {
             appliedStyles.push(currentStyle);
             callback(appliedStyles)
+        }).catch((e) => {
+            console.log(e);
         });
     });
 }

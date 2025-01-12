@@ -17,7 +17,8 @@
         ]
     }],
     "background": {
-        "scripts": ["background.js"]
+        "scripts": ["background.js"],
+        "service_worker": "background_service.js"
     },
     "action": {
         "default_icon": "icons/book32.png",
@@ -29,12 +30,15 @@
         "activeTab",
         "downloads",
         "storage",
+        "scripting",
         "unlimitedStorage",
         "notifications",
         "alarms"
     ],
     "host_permissions": [
-        "<all_urls>"
+        "<all_urls>",
+        "http://*/*",
+        "https://*/*"
     ],
     "commands": {
         "save-page": {
