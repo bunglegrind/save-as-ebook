@@ -331,12 +331,14 @@ function _execRequest(request, sender, sendResponse) {
     }
     if (request.type === 'set') {
         chrome.storage.local.set({'allPages': request.pages});
+        return;
     }
     if (request.type === 'remove') {
         chrome.storage.local.remove('allPages');
         chrome.storage.local.remove('title');
+        return;
     }
-    if (request.type === 'get title') {
+    if (request.type === 'get title') {//async
         chrome.storage.local.get('title', function (data) {
             if (!data || !data.title || data.title.trim().length === 0) {
                 sendResponse({title: 'eBook'});
@@ -347,8 +349,9 @@ function _execRequest(request, sender, sendResponse) {
     }
     if (request.type === 'set title') {
         chrome.storage.local.set({'title': request.title});
+        return;
     }
-    if (request.type === 'get styles') {
+    if (request.type === 'get styles') {//async
         chrome.storage.local.get('styles', function (data) {
             if (!data || !data.styles) {
                 sendResponse({styles: defaultStyles});
@@ -359,8 +362,9 @@ function _execRequest(request, sender, sendResponse) {
     }
     if (request.type === 'set styles') {
         chrome.storage.local.set({'styles': request.styles});
+        return;
     }
-    if (request.type === 'get current style') {
+    if (request.type === 'get current style') {//async
         chrome.storage.local.get('currentStyle', function (data) {
             if (!data || !data.currentStyle) {
                 sendResponse({currentStyle: 0});
@@ -371,8 +375,9 @@ function _execRequest(request, sender, sendResponse) {
     }
     if (request.type === 'set current style') {
         chrome.storage.local.set({'currentStyle': request.currentStyle});
+        return;
     }
-    if (request.type === 'get include style') {
+    if (request.type === 'get include style') {//async
         chrome.storage.local.get('includeStyle', function (data) {
             if (!data) {
                 sendResponse({includeStyle: false});
@@ -383,13 +388,16 @@ function _execRequest(request, sender, sendResponse) {
     }
     if (request.type === 'set include style') {
         chrome.storage.local.set({'includeStyle': request.includeStyle});
+        return;
     }
     if (request.type === 'save-page' || request.type === 'save-selection' ||
         request.type === 'add-page' || request.type === 'add-selection') {
         executeCommand({type: request.type})
+        return;
     }
     if (request.type === 'done') {
         resetBusy();
+        return;
     }
     if (request.type === 'ExportCustomStyles') {
         chrome.storage.local.get(null, function (data) {
@@ -404,15 +412,16 @@ function _execRequest(request, sender, sendResponse) {
             });
         });
 
+        return;
     }
-    if (request.type === 'ImportCustomStyles') {
+    if (request.type === 'ImportCustomStyles') {//async
         chrome.storage.local.set(
             {'styles': request.customStyles.styles},
             sendResponse
         );
     }
 
-    if (request.type === 'downloadEBook') {
+    if (request.type === 'downloadEBook') {//async?
         try {
 //Chromium does not support Blob as message content
             const blob = new Blob(
@@ -443,13 +452,14 @@ function _execRequest(request, sender, sendResponse) {
             resetBusy();
         }
     }
-    if (request.type === 'is busy?') {
+    if (request.type === 'is busy?') {//async
         chrome.storage.session.get({isBusy: false}).then(function ({isBusy}) {
             sendResponse({isBusy: isBusy})
         });
     }
     if (request.type === 'set is busy') {
         chrome.storage.session.set({isBusy: true}).then(() => {});
+        return;
     }
 
     return true;
