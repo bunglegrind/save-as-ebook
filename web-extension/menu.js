@@ -129,7 +129,7 @@ document.getElementById("editStyles").onclick = function() {
         active: true
     }, function(tab) {
 
-        Promise.all(
+        Promise.all([
             chrome.scripting.insertCSS({
                 target: {tabId: tab[0].id},
                 files: ["/cssEditor.css"]
@@ -138,7 +138,7 @@ document.getElementById("editStyles").onclick = function() {
                 target: {tabId: tab[0].id},
                 files: ["/utils.js", "/cssEditor.js"]
             })
-        ).then(
+        ]).then(
             function () {
                 window.close();
             }
@@ -162,7 +162,7 @@ document.getElementById("editChapters").onclick = function() {
         active: true
     }, function(tab) {
 
-        Promise.all(
+        Promise.all([
             chrome.scripting.insertCSS({
                 target: {tabId: tab[0].id},
                 files: ["/chapterEditor.css"]
@@ -171,7 +171,7 @@ document.getElementById("editChapters").onclick = function() {
                 target: {tabId: tab[0].id},
                 files: ["/utils.js", "/chapterEditor.js"]
             })
-        ).then(
+        ]).then(
             function () {
                 window.close();
             }
