@@ -393,15 +393,22 @@ function _execRequest(request, sender, sendResponse) {
     }
     if (request.type === 'ExportCustomStyles') {
         chrome.storage.local.get(null, function (data) {
-            chrome.downloads.download({
-                'saveAs': true,
-                'url': URL.createObjectURL(
-                    new Blob([JSON.stringify({styles: data.styles})], {
-                        type: "application/json",
-                    })
-                ),
-                'filename': 'customStyles.json'
-            });
+            const blob = new Blob(
+                [JSON.stringify({styles: data.styles})],
+                {type: "application/json"},
+            );
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = function () {
+                const url = reader.result;
+                chrome.downloads.download({
+                    'saveAs': true,
+                    'url': url,
+// TODO listent downloads.onChanged
+// https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/download
+                    'filename': 'customStyles.json'
+                });
+            };
         });
 
     }
