@@ -17,7 +17,7 @@
         ]
     }],
     "background": {
-        "scripts": ["background.js"],
+        "scripts": ["background_common.js", "background.js"],
         "service_worker": "background_service.js"
     },
     "action": {
