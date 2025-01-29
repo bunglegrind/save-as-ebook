@@ -389,7 +389,15 @@ function _execRequest(request, sender, sendResponse) {
                 [JSON.stringify({styles: data.styles})],
                 {type: "application/json"},
             );
-            downloadFile(blob, 'customStyles.json', () => {});
+            downloadFile(
+                blob,
+                'customStyles.json',
+                function (downloadId) {
+                    if (downloadId === undefined) {
+                        console.log("ERROR: " + chrome.runtime.lastError);
+                    }
+                }
+            );
         });
 
     }
@@ -411,6 +419,11 @@ function _execRequest(request, sender, sendResponse) {
                 blob,
                 request.filename.replace(/[^À-ÿ\w- .]/gi, "_"),
                 function (downloadId) {
+                    if (downloadId === undefined) {
+                        console.log("ERROR: " + chrome.runtime.lastError);
+                        resetBusy();
+                        return;
+                    }
                     console.log("done " + downloadId);
                     resetBusy();
                 }
