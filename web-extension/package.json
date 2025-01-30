@@ -1,0 +1,31 @@
+{
+  "name": "save-as-ebook",
+  "version": "1.0.0",
+  "main": "manifest.json",
+  "scripts": {
+      "build": "node tasks/build.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "web-ext": "^8.3.0"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.5.0",
+    "dompurify": "^3.2.3",
+    "jszip": "^3.10.1"
+  },
+  "import": [
+      "jszip/dist/jszip.js",
+      "dompurify/dist/purify.js",
+      "@mozilla/readability/Readability.js"
+  ],
+  "webExt": {
+      "ignoreFiles": [
+          "tasks",
+          "package.json",
+          "package-lock.json"
+      ]
+  }
+}
