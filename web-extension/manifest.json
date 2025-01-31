@@ -26,19 +26,12 @@
         "default_popup": "menu.html"
      },
     "permissions": [
-        "contextMenus",
         "activeTab",
         "downloads",
         "storage",
         "scripting",
         "unlimitedStorage",
-        "notifications",
         "alarms"
-    ],
-    "host_permissions": [
-        "<all_urls>",
-        "http://*/*",
-        "https://*/*"
     ],
     "commands": {
         "save-page": {
