@@ -1,4 +1,4 @@
-/*! @license DOMPurify 3.2.3 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.2.3/LICENSE */
+/*! @license DOMPurify 3.2.6 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.2.6/LICENSE */
 
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
@@ -43,8 +43,10 @@
     };
   }
   const arrayForEach = unapply(Array.prototype.forEach);
+  const arrayLastIndexOf = unapply(Array.prototype.lastIndexOf);
   const arrayPop = unapply(Array.prototype.pop);
   const arrayPush = unapply(Array.prototype.push);
+  const arraySplice = unapply(Array.prototype.splice);
   const stringToLowerCase = unapply(String.prototype.toLowerCase);
   const stringToString = unapply(String.prototype.toString);
   const stringMatch = unapply(String.prototype.match);
@@ -62,6 +64,9 @@
    */
   function unapply(func) {
     return function (thisArg) {
+      if (thisArg instanceof RegExp) {
+        thisArg.lastIndex = 0;
+      }
       for (var _len = arguments.length, args = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
         args[_key - 1] = arguments[_key];
       }
@@ -200,10 +205,10 @@
   // eslint-disable-next-line unicorn/better-regex
   const MUSTACHE_EXPR = seal(/\{\{[\w\W]*|[\w\W]*\}\}/gm); // Specify template detection regex for SAFE_FOR_TEMPLATES mode
   const ERB_EXPR = seal(/<%[\w\W]*|[\w\W]*%>/gm);
-  const TMPLIT_EXPR = seal(/\$\{[\w\W]*}/gm); // eslint-disable-line unicorn/better-regex
+  const TMPLIT_EXPR = seal(/\$\{[\w\W]*/gm); // eslint-disable-line unicorn/better-regex
   const DATA_ATTR = seal(/^data-[\-\w.\u00B7-\uFFFF]+$/); // eslint-disable-line no-useless-escape
   const ARIA_ATTR = seal(/^aria-[\-\w]+$/); // eslint-disable-line no-useless-escape
-  const IS_ALLOWED_URI = seal(/^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i // eslint-disable-line no-useless-escape
+  const IS_ALLOWED_URI = seal(/^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|matrix):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i // eslint-disable-line no-useless-escape
   );
   const IS_SCRIPT_OR_DATA = seal(/^(?:\w+script|data):/i);
   const ATTR_WHITESPACE = seal(/[\u0000-\u0020\u00A0\u1680\u180E\u2000-\u2029\u205F\u3000]/g // eslint-disable-line no-control-regex
@@ -300,9 +305,9 @@
   function createDOMPurify() {
     let window = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : getGlobal();
     const DOMPurify = root => createDOMPurify(root);
-    DOMPurify.version = '3.2.3';
+    DOMPurify.version = '3.2.6';
     DOMPurify.removed = [];
-    if (!window || !window.document || window.document.nodeType !== NODE_TYPE.document) {
+    if (!window || !window.document || window.document.nodeType !== NODE_TYPE.document || !window.Element) {
       // Not running in a browser, provide a factory function
       // so that you can pass your own Window
       DOMPurify.isSupported = false;
@@ -539,8 +544,8 @@
       URI_SAFE_ATTRIBUTES = objectHasOwnProperty(cfg, 'ADD_URI_SAFE_ATTR') ? addToSet(clone(DEFAULT_URI_SAFE_ATTRIBUTES), cfg.ADD_URI_SAFE_ATTR, transformCaseFunc) : DEFAULT_URI_SAFE_ATTRIBUTES;
       DATA_URI_TAGS = objectHasOwnProperty(cfg, 'ADD_DATA_URI_TAGS') ? addToSet(clone(DEFAULT_DATA_URI_TAGS), cfg.ADD_DATA_URI_TAGS, transformCaseFunc) : DEFAULT_DATA_URI_TAGS;
       FORBID_CONTENTS = objectHasOwnProperty(cfg, 'FORBID_CONTENTS') ? addToSet({}, cfg.FORBID_CONTENTS, transformCaseFunc) : DEFAULT_FORBID_CONTENTS;
-      FORBID_TAGS = objectHasOwnProperty(cfg, 'FORBID_TAGS') ? addToSet({}, cfg.FORBID_TAGS, transformCaseFunc) : {};
-      FORBID_ATTR = objectHasOwnProperty(cfg, 'FORBID_ATTR') ? addToSet({}, cfg.FORBID_ATTR, transformCaseFunc) : {};
+      FORBID_TAGS = objectHasOwnProperty(cfg, 'FORBID_TAGS') ? addToSet({}, cfg.FORBID_TAGS, transformCaseFunc) : clone({});
+      FORBID_ATTR = objectHasOwnProperty(cfg, 'FORBID_ATTR') ? addToSet({}, cfg.FORBID_ATTR, transformCaseFunc) : clone({});
       USE_PROFILES = objectHasOwnProperty(cfg, 'USE_PROFILES') ? cfg.USE_PROFILES : false;
       ALLOW_ARIA_ATTR = cfg.ALLOW_ARIA_ATTR !== false; // Default true
       ALLOW_DATA_ATTR = cfg.ALLOW_DATA_ATTR !== false; // Default true
@@ -905,7 +910,7 @@
         allowedTags: ALLOWED_TAGS
       });
       /* Detect mXSS attempts abusing namespace confusion */
-      if (currentNode.hasChildNodes() && !_isNode(currentNode.firstElementChild) && regExpTest(/<[/\w]/g, currentNode.innerHTML) && regExpTest(/<[/\w]/g, currentNode.textContent)) {
+      if (SAFE_FOR_XML && currentNode.hasChildNodes() && !_isNode(currentNode.firstElementChild) && regExpTest(/<[/\w!]/g, currentNode.innerHTML) && regExpTest(/<[/\w!]/g, currentNode.textContent)) {
         _forceRemove(currentNode);
         return true;
       }
@@ -1057,7 +1062,8 @@
           value: attrValue
         } = attr;
         const lcName = transformCaseFunc(name);
-        let value = name === 'value' ? attrValue : stringTrim(attrValue);
+        const initValue = attrValue;
+        let value = name === 'value' ? initValue : stringTrim(initValue);
         /* Execute a hook if present */
         hookEvent.attrName = lcName;
         hookEvent.attrValue = value;
@@ -1083,10 +1089,9 @@
         if (hookEvent.forceKeepAttr) {
           continue;
         }
-        /* Remove attribute */
-        _removeAttribute(name, currentNode);
         /* Did the hooks approve of the attribute? */
         if (!hookEvent.keepAttr) {
+          _removeAttribute(name, currentNode);
           continue;
         }
         /* Work around a security issue in jQuery 3.0 */
@@ -1103,6 +1108,7 @@
         /* Is `value` valid for this attribute? */
         const lcTag = transformCaseFunc(currentNode.nodeName);
         if (!_isValidAttribute(lcTag, lcName, value)) {
+          _removeAttribute(name, currentNode);
           continue;
         }
         /* Handle attributes that require Trusted Types */
@@ -1123,19 +1129,23 @@
           }
         }
         /* Handle invalid data-* attribute set by try-catching it */
-        try {
-          if (namespaceURI) {
-            currentNode.setAttributeNS(namespaceURI, name, value);
-          } else {
-            /* Fallback to setAttribute() for browser-unrecognized namespaces e.g. "x-schema". */
-            currentNode.setAttribute(name, value);
+        if (value !== initValue) {
+          try {
+            if (namespaceURI) {
+              currentNode.setAttributeNS(namespaceURI, name, value);
+            } else {
+              /* Fallback to setAttribute() for browser-unrecognized namespaces e.g. "x-schema". */
+              currentNode.setAttribute(name, value);
+            }
+            if (_isClobbered(currentNode)) {
+              _forceRemove(currentNode);
+            } else {
+              arrayPop(DOMPurify.removed);
+            }
+          } catch (_) {
+            _removeAttribute(name, currentNode);
           }
-          if (_isClobbered(currentNode)) {
-            _forceRemove(currentNode);
-          } else {
-            arrayPop(DOMPurify.removed);
-          }
-        } catch (_) {}
+        }
       }
       /* Execute a hook if present */
       _executeHooks(hooks.afterSanitizeAttributes, currentNode, null);
@@ -1321,7 +1331,11 @@
       }
       arrayPush(hooks[entryPoint], hookFunction);
     };
-    DOMPurify.removeHook = function (entryPoint) {
+    DOMPurify.removeHook = function (entryPoint, hookFunction) {
+      if (hookFunction !== undefined) {
+        const index = arrayLastIndexOf(hooks[entryPoint], hookFunction);
+        return index === -1 ? undefined : arraySplice(hooks[entryPoint], index, 1)[0];
+      }
       return arrayPop(hooks[entryPoint]);
     };
     DOMPurify.removeHooks = function (entryPoint) {
