@@ -281,6 +281,7 @@ function isVisible(elem) {
         elem.offsetWidth
         || elem.offsetHeight
         || elem.getClientRects().length
+        || getComputedStyle(elem).display === "contents"
     );
 }
 
@@ -489,7 +490,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 // Workaround: I think I should clone the visible nodes in a new DOM-like structure
 
-            pre.outerHTML = "";
+            pre.remove();
         }
     });
 
